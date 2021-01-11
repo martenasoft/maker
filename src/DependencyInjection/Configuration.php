@@ -2,25 +2,52 @@
 
 namespace MartenaSoft\Maker\DependencyInjection;
 
+use MartenaSoft\Maker\MartenaSoftMakerBundle;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
 class Configuration implements ConfigurationInterface
 {
+    public static function getDirectories(): array
+    {
+        return [
+            'Controller',
+            'Entity',
+            'Repository',
+            'Form',
+            'Command',
+            'Resource',
+            'Service'
+        ];
+    }
+
     public function getConfigTreeBuilder()
     {
-        $treeBuilder = new TreeBuilder('martena_maker');
+        $treeBuilder = new TreeBuilder(MartenaSoftMakerBundle::getConfigName());
 
-        /*$treeBuilder->getRootNode()
+        $treeBuilder->getRootNode()
             ->children()
-            ->arrayNode('twitter')
+                ->scalarNode("root")
+                    ->defaultValue(realpath(__DIR__ . '/../../../../'))
+                ->end()
+            ->end()
             ->children()
-            ->integerNode('client_id')->end()
-            ->scalarNode('client_secret')->end()
-            ->end()
-            ->end() // twitter
-            ->end()
-        ;*/
+                ->scalarNode('directories')
+                    ->defaultValue(self::getDirectories())
+                    ->end()
+                ->end()
+            ->children()
+                ->arrayNode('bundles')
+                    ->addDefaultChildrenIfNoneSet()
+                    ->arrayPrototype()
+                        ->children()
+                            ->scalarNode('dir')->defaultValue("martenasoft")->end()
+                            ->scalarNode('reader')->defaultValue("default")->end()
+                      //      ->scalarNode('password')->defaultValue("sdsd")->end()
+                        ->end()
+                    ->end()
+                ->end()
+            ->end();
 
         return $treeBuilder;
     }

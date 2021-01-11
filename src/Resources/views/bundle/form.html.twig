@@ -1,0 +1,56 @@
+{% block body %}
+    {{ form_start(form) }}
+
+    {{ form_row(form.sysAction) }}
+
+    {# {{ form_errors(form) }}
+     {{ form_row(form) }}
+ #}
+    {{ form_errors(form.name) }}
+    {{ form_row(form.name) }}
+
+    {{ form_errors(form.rootDir) }}
+    {{ form_row(form.rootDir) }}
+
+    {{ form_errors(form.path) }}
+    {{ form_row(form.path) }}
+
+
+    {% for directory in directories %}
+        {% if attribute(form, directory) is defined %}
+            {% set formElement = attribute(form, directory) %}
+            <h4>{{ directory }}</h4>
+            <ul class="controllers" data-prototype="{{ form_widget(formElement.vars.prototype)|e('html_attr') }}">
+
+                {% for controller in formElement %}
+                    <li>
+                        <div class="row">
+                            <div class="col-11">
+                                {{ form_row(controller.name) }}
+                            </div>
+                            <div class="col-1">
+                                <div style="margin-top: 35px">
+
+                                    <button
+                                            type="submit"
+                                            class="btn btn-info"
+                                            onclick="
+                                    document.getElementById('bundle_form_sysAction').value ='add-{{ directory }}';
+">
+                                        +
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                {{ form_row(controller.content) }}
+                            </div>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endfor %}
+    {% set cancel_url = path('admin_makerconfig_index') %}
+    {% include '@MartenaSoftCommon/common/form_bottom.html.twig' %}
+    {{ form_end(form) }}
+{% endblock %}

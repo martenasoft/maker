@@ -1,12 +1,12 @@
 <?php
 
-namespace MartenaSoft\Maker;
+namespace __REPLACE_NAMESPACE__;
 
 use MartenaSoft\Common\CommonMartenaSoftBundleInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
-class MartenaSoftMakerBundle extends Bundle implements CommonMartenaSoftBundleInterface
+class __REPLACE_RESOURCE_BUNDLE_NAME__Bundle extends Bundle implements CommonMartenaSoftBundleInterface
 {
     public function build(ContainerBuilder $container)
     {
@@ -15,6 +15,6 @@ class MartenaSoftMakerBundle extends Bundle implements CommonMartenaSoftBundleIn
 
     public static function getConfigName(): string
     {
-        return 'martena_soft_maker';
+        return '__REPLACE_NAMESPACE_LC_____REPLACE_BUNDLE_NAME_LC__';
     }
 }

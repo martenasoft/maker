@@ -1,0 +1,5 @@
+{% extends '@MartenaSoftContent/content/page.html.twig' %}
+
+{% block body %}
+   __REPLACE_NAMESPACE__\__REPLACE_NAMESPACE__\index
+{% endblock %}

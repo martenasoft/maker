@@ -1,0 +1,19 @@
+{% extends '@MartenaSoftContent/content/page.html.twig' %}
+
+{% block body %}
+    <div class="row">
+        <div class="col-9">
+
+        </div>
+        <div class="col-3">
+            <div class="float-right">
+                <a class="btn btn-primary" href="{{ path('admin_makerconfig_create') }}">Create</a>
+            </div>
+        </div>
+    </div>
+    {% if bundles is not empty %}
+        {% for name, bindle in bundles %}
+            <p><a href="{{ path('admin_makerconfig_edit', {slug: name}) }}">{{ name }}</a> </p>
+        {% endfor %}
+    {% endif %}
+{% endblock %}

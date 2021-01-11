@@ -1,0 +1,11 @@
+admin_makerconfig_index:
+  path: /bundle
+  controller: 'MartenaSoft\Maker\Controller\CreateBundleController::index'
+
+admin_makerconfig_edit:
+  path: /bundle/edit/{slug}
+  controller: 'MartenaSoft\Maker\Controller\CreateBundleController::save'
+
+admin_makerconfig_create:
+  path: /bundle/create
+  controller: 'MartenaSoft\Maker\Controller\CreateBundleController::create'

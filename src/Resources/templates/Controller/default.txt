@@ -1,0 +1,15 @@
+<?php
+
+namespace __REPLACE_NAMESPACE__\__REPLACE_BUNDLE_NAME__\Controller;
+
+use MartenaSoft\Common\Controller\AbstractAdminBaseController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class __REPLACE_PREFIX__Controller extends AbstractAdminBaseController
+{
+    public function index(Request $request): Response
+    {
+        return $this->render('@__REPLACE_RESOURCE_BUNDLE_NAME__Bundle/__REPLACE_PREFIX_LC__/index.html.twig');
+    }
+}

@@ -1,0 +1,7 @@
+__REPLACE_BUNDLE_NAME_LC___bundle___REPLACE_PREFIX_LC___admin:
+  resource: '@__REPLACE_RESOURCE_BUNDLE_NAME__Bundle/Resources/config/routes/admin.yaml'
+  prefix: /admin
+
+__REPLACE_BUNDLE_NAME_LC___bundle___REPLACE_PREFIX_LC___frontend:
+  resource: '@__REPLACE_RESOURCE_BUNDLE_NAME__Bundle/Resources/config/routes/frontend.yaml'
+  prefix: /
