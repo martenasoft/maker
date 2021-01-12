@@ -9,3 +9,8 @@ admin_makerconfig_edit:
 admin_makerconfig_create:
   path: /bundle/create
   controller: 'MartenaSoft\Maker\Controller\CreateBundleController::create'
+
+
+admin_makermodule_index:
+  path: /module
+  controller: 'MartenaSoft\Maker\Controller\ModuleController::index'

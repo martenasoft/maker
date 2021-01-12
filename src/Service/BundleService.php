@@ -320,7 +320,7 @@ class BundleService
             strtolower($prefixName),
             $resourceBundleName,
             strtolower($entity->getName()),
-            strtolower($entity->getNamespace()),
+            strtolower(str_replace(['\\'], ['_'], $entity->getNamespace())),
 
         ];
 

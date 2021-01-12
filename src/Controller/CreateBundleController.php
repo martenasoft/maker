@@ -50,6 +50,7 @@ class CreateBundleController extends AbstractAdminBaseController
         if ($form->isSubmitted() && $form->isValid()) {
             try {
                 $this->bundleService->createDirectoriesAndEmptyFiles($form->getData());
+
             } catch (\Throwable $exception) {
                 throw $exception;
             }

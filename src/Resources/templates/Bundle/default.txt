@@ -15,6 +15,6 @@ class __REPLACE_RESOURCE_BUNDLE_NAME__Bundle extends Bundle implements CommonMar
 
     public static function getConfigName(): string
     {
-        return '__REPLACE_NAMESPACE_LC_____REPLACE_BUNDLE_NAME_LC__';
+        return '__REPLACE_NAMESPACE_LC___bundle';
     }
 }
