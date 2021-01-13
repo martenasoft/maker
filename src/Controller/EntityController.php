@@ -15,9 +15,9 @@ class EntityController extends AbstractAdminBaseController
 {
     public function index(BundleService $bundleService): Response
     {
-        $bundles = $this->bundleService->getBundles();
+        $bundles = $bundleService->getBundles();
 
-        return $this->render('@MartenaSoftMaker/module/index.html.twig', [
+        return $this->render('@MartenaSoftMaker/entity/index.html.twig', [
             'bundles' => $bundles
         ]);
     }
@@ -43,9 +43,10 @@ class EntityController extends AbstractAdminBaseController
             $formData = $form->getData();
             if ($formData->getSysAction() == 'add-type') {
                 $form = $this->createForm(EntityInfoFormType::class, $entityInfo);
+            } else {
+                $content = $entityService->collectData($formData);
             }
 
-            $entityService->collectData($formData);
         }
 
         return $this->render('@MartenaSoftMaker/entity/create.html.twig', [

@@ -1,7 +1,10 @@
 
 {{ form_start(form) }}
-{{ form_widget(form.name) }}
-{{ form_widget(form.isDatabase) }}
+
+{{ form_row(form.namespace) }}
+{{ form_row(form.bundleName) }}
+{{ form_row(form.name) }}
+{{ form_row(form.isDatabase) }}
 
 
 <table class="table table-bordered">
@@ -21,17 +24,26 @@
             <td>{{ form_row(field.templateName) }}</td>
             <td>{{ form_row(field.type) }}</td>
             <td>{{ form_row(field.isForm) }}</td>
-            <td><button
-                        type="submit"
-                        class="btn btn-info"
-                        onclick="
-                                        document.getElementById('entity_info_form_sysAction').value ='add-type';
-                                        ">
-                    +
-                </button>
+            <td>
             </td>
         </tr>
+
     {% endfor %}
+    <tr>
+        <td colspan="4"></td>
+        <td><button
+                    type="submit"
+                    class="btn btn-info"
+                    onclick="
+                                        document.getElementById('entity_info_form_sysAction').value ='add-type';
+                                        ">
+                +
+            </button></td>
+    </tr>
     </tbody>
 </table>
+
+{% set cancel_url = path('admin_maker_entity_index') %}
+    {% include '@MartenaSoftCommon/common/form_bottom.html.twig' %}
+
 {{ form_end(form) }}

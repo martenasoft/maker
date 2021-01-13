@@ -58,12 +58,9 @@ class BundleService
     {
         $bundlesConfig = $this->getConfig();
         $path = $bundlesConfig['root'] . DIRECTORY_SEPARATOR . $name;
-        if (!empty(
-        $bundleInfo = $this->getBundleInfo(
-            $path,
-            $name
-        )
-        )) {
+        $bundleInfo = $this->getBundleInfo($path, $name);
+
+        if (!empty($bundleInfo)) {
             $entityBundle = new Bundle();
             $entityBundle
                 ->setName($name)
@@ -82,6 +79,7 @@ class BundleService
             }
             return $entityBundle;
         }
+        return null;
     }
 
     public function createDirectoriesAndEmptyFiles(CreateBundleEntity $entity, string $prefixName = 'Default'): void
@@ -121,7 +119,7 @@ class BundleService
         $this->saveFile(
             $templateFile,
             $bundleRootPath,
-            $this->getResourceBundleName($entity).'Bundle.php',
+            $this->getResourceBundleName($entity) . 'Bundle.php',
             $entity,
             $prefixName
         );
@@ -161,7 +159,7 @@ class BundleService
         $this->saveFile(
             $templateExtensionFile,
             $dependencyInjectionBundleRootPath,
-            $this->getResourceBundleName($entity).'Extension.php',
+            $this->getResourceBundleName($entity) . 'Extension.php',
             $entity,
             $prefixName
         );
@@ -210,54 +208,54 @@ class BundleService
                         file_put_contents($serviceFile, $serviceContent);
                     }
 
-                  /*  if (in_array('Controller', $entity->getModules())) {
-                        $configRoutePath = $configPath . DIRECTORY_SEPARATOR . 'routes';
+                    /*  if (in_array('Controller', $entity->getModules())) {
+                          $configRoutePath = $configPath . DIRECTORY_SEPARATOR . 'routes';
 
-                        $templateFile = $templatesPath .
-                            DIRECTORY_SEPARATOR .
-                            'Route' .
-                            DIRECTORY_SEPARATOR .
-                            strtolower($prefixName) . '.txt';
+                          $templateFile = $templatesPath .
+                              DIRECTORY_SEPARATOR .
+                              'Route' .
+                              DIRECTORY_SEPARATOR .
+                              strtolower($prefixName) . '.txt';
 
 
-                        $this->saveFile(
-                            $templateFile,
-                            $configRoutePath,
-                            'all.yaml',
-                            $entity,
-                            $prefixName,
-                            true
-                        );
+                          $this->saveFile(
+                              $templateFile,
+                              $configRoutePath,
+                              'all.yaml',
+                              $entity,
+                              $prefixName,
+                              true
+                          );
 
-                        $resourceViewTemplateFile = $templatesPath .
-                            DIRECTORY_SEPARATOR .
-                            'View' .
-                            DIRECTORY_SEPARATOR .
-                            strtolower($prefixName) . '.txt';
+                          $resourceViewTemplateFile = $templatesPath .
+                              DIRECTORY_SEPARATOR .
+                              'View' .
+                              DIRECTORY_SEPARATOR .
+                              strtolower($prefixName) . '.txt';
 
-                        $viewIndexPath = $viewPath . DIRECTORY_SEPARATOR . strtolower($prefixName);
+                          $viewIndexPath = $viewPath . DIRECTORY_SEPARATOR . strtolower($prefixName);
 
-                        $this->saveFile(
-                            $resourceViewTemplateFile,
-                            $viewIndexPath,
-                            'index.html.twig',
-                            $entity,
-                            $prefixName
-                        );
+                          $this->saveFile(
+                              $resourceViewTemplateFile,
+                              $viewIndexPath,
+                              'index.html.twig',
+                              $entity,
+                              $prefixName
+                          );
 
-                    }*/
+                      }*/
 
                     break;
 
                 default:
-                   /* $templatePath .= strtolower($prefixName) . '.txt';
-                    $fileName = $modulePath . DIRECTORY_SEPARATOR . $prefixName . $module . '.php';
+                    /* $templatePath .= strtolower($prefixName) . '.txt';
+                     $fileName = $modulePath . DIRECTORY_SEPARATOR . $prefixName . $module . '.php';
 
-                    if (file_exists($templatePath)) {
-                        $content = file_get_contents($templatePath);
-                        $content = $this->replaceContent($content, $entity, $prefixName);
-                        file_put_contents($fileName, $content);
-                    }*/
+                     if (file_exists($templatePath)) {
+                         $content = file_get_contents($templatePath);
+                         $content = $this->replaceContent($content, $entity, $prefixName);
+                         file_put_contents($fileName, $content);
+                     }*/
             }
         }
 
@@ -283,7 +281,8 @@ class BundleService
         CreateBundleEntity $entity,
         string $prefixName,
         bool $isLower = false
-    ): void {
+    ): void
+    {
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
@@ -302,7 +301,8 @@ class BundleService
         ?array $form = null,
         ?array $to = null,
         bool $isLower = false
-    ): string {
+    ): string
+    {
         $findData = [
             '__REPLACE_NAMESPACE__',
             '__REPLACE_BUNDLE_NAME__',
@@ -317,7 +317,7 @@ class BundleService
         $replaceData = [
             $entity->getNamespace(),
             $entity->getName(),
-            $prefixName ,
+            $prefixName,
             strtolower($prefixName),
             $resourceBundleName,
             strtolower($entity->getName()),
@@ -366,8 +366,10 @@ class BundleService
                     );
                 }
             }
+
             return $result;
         }
+
         return [];
     }
 

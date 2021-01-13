@@ -17,6 +17,8 @@ class EntityInfoFormType extends AbstractType
         $entityInfo = new EntityInfo();
 
         $builder
+            ->add('namespace')
+            ->add('bundleName')
             ->add('name')
             ->add('isDatabase', CheckboxType::class, [
                 'required' => false

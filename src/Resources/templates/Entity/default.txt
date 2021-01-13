@@ -1,0 +1,8 @@
+<?php
+
+namespace __REPLACE_NAMESPACE__\Entity;
+
+class __REPLACE_PREFIX__
+{
+
+}
