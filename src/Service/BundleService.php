@@ -28,6 +28,7 @@ class BundleService
         $this->validateConfig();
     }
 
+
     public function getBundles(): array
     {
         $bundles = $this->getConfig();

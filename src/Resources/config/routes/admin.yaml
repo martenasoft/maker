@@ -14,3 +14,12 @@ admin_makerconfig_create:
 admin_makermodule_index:
   path: /module
   controller: 'MartenaSoft\Maker\Controller\ModuleController::index'
+
+
+admin_maker_entity_index:
+  path: /entity
+  controller: 'MartenaSoft\Maker\Controller\EntityController::index'
+
+admin_maker_entity_create:
+  path: /entity/create
+  controller: 'MartenaSoft\Maker\Controller\EntityController::create'

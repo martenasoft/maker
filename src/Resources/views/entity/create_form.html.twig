@@ -1,0 +1,37 @@
+
+{{ form_start(form) }}
+{{ form_widget(form.name) }}
+{{ form_widget(form.isDatabase) }}
+
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>or select</th>
+            <th>Type</th>
+            <th>Is form</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for field in form.entityField %}
+        <tr>
+            <td>{{ form_row(field.name) }}</td>
+            <td>{{ form_row(field.templateName) }}</td>
+            <td>{{ form_row(field.type) }}</td>
+            <td>{{ form_row(field.isForm) }}</td>
+            <td><button
+                        type="submit"
+                        class="btn btn-info"
+                        onclick="
+                                        document.getElementById('entity_info_form_sysAction').value ='add-type';
+                                        ">
+                    +
+                </button>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{{ form_end(form) }}
