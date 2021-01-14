@@ -9,6 +9,7 @@ use MartenaSoft\Maker\Entity\EntityInfo;
 use MartenaSoft\Maker\Form\EntityInfoFormType;
 use MartenaSoft\Maker\Service\BundleService;
 use MartenaSoft\Maker\Service\EntityService;
+use MartenaSoft\Maker\Service\FormService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,7 +23,8 @@ class EntityController extends AbstractAdminBaseController
         LoggerInterface $logger,
         EventDispatcherInterface $eventDispatcher,
         BundleService $bundleService
-    ) {
+    )
+    {
         parent::__construct($entityManager, $logger, $eventDispatcher);
         $this->bundleService = $bundleService;
     }
@@ -39,24 +41,35 @@ class EntityController extends AbstractAdminBaseController
         );
     }
 
-    public function create(Request $request, EntityService $entityService, ?string $bundleName = null): Response
+    public function create(
+        Request $request,
+        EntityService $entityService,
+        FormService $formService,
+        ?string $bundleName = null
+    ): Response
     {
         $entityInfo = new EntityInfo();
+
 
         if (!empty($bundleName) && !empty($bundleInfo = $this->bundleService->getBundle($bundleName))) {
             $entityInfo->setNamespace($bundleInfo->getNamespace());
             $entityInfo->setBundleName($bundleInfo->getName());
         }
 
-        if (!empty($formData = $request->request->get('entity_info_form'))) {
-            if (!empty($formData['entityField'])) {
-                foreach ($formData['entityField'] as $field) {
-                    $entityInfo->getEntityField()->add($this->getEntityFieldNewType());
-                }
+        $formData = $request->request->get('entity_info_form');
+
+        if (!empty($formData) && !empty($formData['entityField'])) {
+            foreach ($formData['entityField'] as $field) {
+                $entityInfo->getEntityField()->add($this->getEntityFieldNewType());
             }
         }
 
-        $entityInfo->getEntityField()->add($this->getEntityFieldNewType());
+        $isAddElement = !empty($formData['sysAction']) && $formData['sysAction'] == 'add-type';
+
+        if ($isAddElement) {
+            $entityInfo->getEntityField()->add($this->getEntityFieldNewType());
+        }
+
         $form = $this->createForm(EntityInfoFormType::class, $entityInfo);
 
         $form->handleRequest($request);
@@ -64,12 +77,16 @@ class EntityController extends AbstractAdminBaseController
         if ($form->isSubmitted() && $form->isValid()) {
             $formData = $form->getData();
             if ($formData->getSysAction() == 'add-type') {
-                $form = $this->createForm(EntityInfoFormType::class, $entityInfo);
+                // $form = $this->createForm(EntityInfoFormType::class, $entityInfo);
             } else {
-                $content = $entityService->collectData($formData);
+
+                  $content = $entityService->collectData($formData);
+                  $content = $formService->collectData($formData);
+
+                  dump($content);
             }
         }
-        dump($content);
+
         return $this->render(
             '@MartenaSoftMaker/entity/create.html.twig',
             [

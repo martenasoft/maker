@@ -6,10 +6,10 @@ use Doctrine\Common\Collections\ArrayCollection;
 
 class EntityInfo
 {
-    private ?string $namespace;
-    private ?string $bundleName;
-    private ?string $name;
-    private bool $isDatabase;
+    private ?string $namespace = "";
+    private ?string $bundleName = "";
+    private ?string $name = "";
+    private bool $isDatabase = false;
     private ?string $sysAction = "";
 
     private ArrayCollection $entityField;
@@ -19,45 +19,45 @@ class EntityInfo
         $this->entityField = new ArrayCollection();
     }
 
-    public function getName(): string
+    public function getName(): ?string
     {
         return $this->name;
     }
 
-    public function setName(string $name): self
+    public function setName(?string $name): self
     {
         $this->name = $name;
         return $this;
     }
 
-    public function getBundleName(): string
+    public function getBundleName(): ?string
     {
         return $this->bundleName;
     }
 
-    public function setBundleName(string $bundleName): self
+    public function setBundleName(?string $bundleName): self
     {
         $this->bundleName = $bundleName;
         return $this;
     }
 
-    public function getNamespace(): string
+    public function getNamespace(): ?string
     {
         return $this->namespace;
     }
 
-    public function setNamespace(string $namespace): self
+    public function setNamespace(?string $namespace): self
     {
         $this->namespace = $namespace;
         return $this;
     }
 
-    public function isDatabase(): bool
+    public function isDatabase(): ?bool
     {
         return $this->isDatabase;
     }
 
-    public function setIsDatabase(bool $isDatabase): self
+    public function setIsDatabase(?bool $isDatabase): self
     {
         $this->isDatabase = $isDatabase;
         return $this;

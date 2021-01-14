@@ -1,0 +1,14 @@
+<?php
+
+namespace __REPLACE_NAMESPACE__\Form;
+
+use Symfony\Component\Form\AbstractType;
+use __REPLACE_NAMESPACE__\Entity\__REPLACE_PREFIX__;
+
+class __REPLACE_PREFIX__Type extends AbstractType
+{
+     public function buildForm(FormBuilderInterface $builder, array $options): void
+     {
+
+     }
+}

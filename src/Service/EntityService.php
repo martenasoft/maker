@@ -10,6 +10,7 @@ class EntityService
     private TemplateFileService $templateFileService;
     private BundleService $bundleService;
 
+
     public function __construct(TemplateFileService $templateFileService, BundleService $bundleService)
     {
         $this->templateFileService = $templateFileService;
@@ -56,9 +57,10 @@ class EntityService
                         ->addReplace(TemplateFileService::REPLACE_VAR_NAME, $field->getName())
                     ;
 
-                    $phpVarResult = $this->templateFileService->replace($phpVar);
-                    $getter = $this->templateFileService->replace($phpGetter);
-                    $setter = $this->templateFileService->replace($phpSetter);
+                    $phpVarResult .= $this->templateFileService->replace($phpVar)."\n";
+                    $getter .= $this->templateFileService->replace($phpGetter)."\n";
+                    $setter .= $this->templateFileService->replace($phpSetter)."\n";
+
                 }
             }
         }
