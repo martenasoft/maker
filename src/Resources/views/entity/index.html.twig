@@ -1,5 +1,16 @@
 {% extends '@MartenaSoftContent/content/page.html.twig' %}
 
 {% block body %}
-    
+    <div class="row">
+    {% for bundle in bundles %}
+        {% set bundleName = bundle.class | split('\\') | last %}
+        <div class="card m-3" style="width: 18rem;">
+            <div class="card-body">
+                <h5 class="card-title">{{ bundleName }}</h5>
+                <p class="card-text">path: {{ bundle.path }}</p>
+                <a href="{{ path('admin_maker_entity_create', {bundleName:bundle.path | split('/')[1]}) }}" class="btn btn-primary">Create</a>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
 {% endblock %}

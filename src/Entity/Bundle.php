@@ -7,6 +7,7 @@ use MartenaSoft\Maker\DependencyInjection\Configuration;
 
 class Bundle
 {
+    private string $namespace;
     private string $name;
     private string $rootDir;
     private string $path;
@@ -14,6 +15,17 @@ class Bundle
     private bool $isAdmin;
     private string $sysAction = '';
     private array $arrayCollections = [];
+
+    public function getNamespace(): string
+    {
+        return $this->namespace;
+    }
+
+    public function setNamespace(string $namespace): self
+    {
+        $this->namespace = $namespace;
+        return $this;
+    }
 
     public function getName(): string
     {

@@ -21,5 +21,5 @@ admin_maker_entity_index:
   controller: 'MartenaSoft\Maker\Controller\EntityController::index'
 
 admin_maker_entity_create:
-  path: /entity/create
+  path: /entity/create/{bundleName}
   controller: 'MartenaSoft\Maker\Controller\EntityController::create'

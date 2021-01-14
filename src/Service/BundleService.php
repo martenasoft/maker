@@ -63,6 +63,7 @@ class BundleService
         if (!empty($bundleInfo)) {
             $entityBundle = new Bundle();
             $entityBundle
+                ->setNamespace($bundleInfo['namespace'])
                 ->setName($name)
                 ->setRootDir($bundlesConfig['root'])
                 ->setPath($bundleInfo['path']);
