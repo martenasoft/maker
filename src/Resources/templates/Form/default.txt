@@ -7,8 +7,18 @@ use __REPLACE_NAMESPACE__\Entity\__REPLACE_PREFIX__;
 
 class __REPLACE_PREFIX__Type extends AbstractType
 {
-     public function buildForm(FormBuilderInterface $builder, array $options): void
+     public function buildForm (FormBuilderInterface    $builder = null, array $options): void
      {
+        if (true) {
+
+            echo 12;
+        }
+
+        foreach() {  echo 12; }
+
+        $builder
+        ->add("name", ['sdsd' => $csdsd])
+        ->add();
 
      }
 }
