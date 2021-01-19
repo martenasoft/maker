@@ -4,6 +4,8 @@ namespace __REPLACE_NAMESPACE__\Form;
 
 use Symfony\Component\Form\AbstractType;
 use __REPLACE_NAMESPACE__\Entity\__REPLACE_PREFIX__;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class __REPLACE_PREFIX__Type extends AbstractType
 {
@@ -21,4 +23,13 @@ class __REPLACE_PREFIX__Type extends AbstractType
         ->add();
 
      }
+
+      public function configureOptions(OptionsResolver $resolver)
+      {
+         $resolver->setDefaults(
+             [
+                 'data_class' => __REPLACE_PREFIX__::class
+             ]
+         );
+      }
 }

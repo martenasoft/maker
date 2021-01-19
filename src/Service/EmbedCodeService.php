@@ -18,11 +18,51 @@ class EmbedCodeService
 
     public function getResult(): string
     {
-        $result = $this->content;
+        $result = implode("\n", $this->contentArray);
         return $result;
     }
 
-    public function findMethod(string $name): self
+
+
+    public function findUse(): array
+    {
+        $result = [];
+
+        $class = [];
+        foreach ($this->contentArray as $line => $body) {
+
+            $pattern = "/namespace\s+[a-zA-Z0-9_\\\]+;$/m";
+            if (preg_match($pattern, $body, $matches)) {
+                $result['namespace'] = [
+                    'line' => $line,
+                    'body' => $matches[0]
+                ];
+            }
+
+            $pattern = "/use\s+[a-zA-Z0-9_\\\]+;$/m";
+            if (preg_match($pattern, $body, $matches) !== false && !empty($matches[0])) {
+                $result['use'][] = [
+                    'line' => $line,
+                    'body' => $matches[0]
+                ];
+
+                if (isset($class['use_empty'])) {
+                    unset($class['use_empty']);
+                }
+            }
+        }
+
+        if (empty($result['use']) && !empty($result['use_empty'])) {
+            $result['use'][] = [
+                'line' => $result['open_quote'],
+                'body' => ''
+            ];
+        }
+
+        return $result;
+    }
+
+    public function findMethod(string $name): array
     {
         $file = explode("\n", $this->content);
         $data = [];
@@ -33,7 +73,7 @@ class EmbedCodeService
 
             if (preg_match($pattern, $line, $matches) && isset($matches[2]) && isset($matches[3])) {
                 //  if (!empty())
-               $data['methods'][$matches[3]] = [
+                $data['methods'][$matches[3]] = [
                     'line' => $lineNumber + 1,
                     'accessModifier' => $matches[2],
                     "name" => $matches[3]
@@ -56,7 +96,7 @@ class EmbedCodeService
                 if (strpos($line, ")") !== false) {
                     $data['methods'][$name]['arguments']['close_quote'] = ['line' => $lineNumber];
 
-                    if(empty($data['methods'][$name]['arguments']['variables'])
+                    if (empty($data['methods'][$name]['arguments']['variables'])
                         && preg_match("/\((.*)\)/", $line, $matches_) && !empty($matches_[1])) {
                         if (strpos($matches_[1], ',') !== false) {
                             $argumenVariables = explode(',', $matches_[1]);
@@ -104,10 +144,9 @@ class EmbedCodeService
                 }
 
 
-
                 if (strpos($line, "}") != false) {
                     $data['methods'][$name]['body']['close_quote_'][] = [
-                        'line' => $lineNumber +  1,
+                        'line' => $lineNumber + 1,
                         'body' => $line
                     ];
                 }
@@ -139,8 +178,8 @@ class EmbedCodeService
                     $tmpVal = explode(",", $args['vars']);
                     if (isset($data['methods'][$name]['arguments']['variables'][$i + 1]['vars']) && isset($tmpVal[1])) {
                         $data['methods'][$name]['arguments']['variables'][$i + 1]['vars']
-                            = preg_replace( ['/\s+/'], [''], $tmpVal[1]) .
-                            ' '.
+                            = preg_replace(['/\s+/'], [''], $tmpVal[1]) .
+                            ' ' .
                             $data['methods'][$name]['arguments']['variables'][$i + 1]['vars'];
 
                         $data['methods'][$name]['arguments']['variables'][$i]['vars'] = str_replace(
@@ -153,7 +192,7 @@ class EmbedCodeService
                 }
                 $data['methods'][$name]['arguments']['variables'][$i]['vars']
                     = preg_replace(['/^\s+|\s+$/', '/\s{2,}/'], ['', ' '],
-                                   $data['methods'][$name]['arguments']['variables'][$i]['vars']);
+                    $data['methods'][$name]['arguments']['variables'][$i]['vars']);
 
                 if (strpos($data['methods'][$name]['arguments']['variables'][$i]['vars'], ' $') !== false) {
                     list($type, $varName)
@@ -174,10 +213,7 @@ class EmbedCodeService
 
         $this->data = $data;
 
-        $this->set('TEst', 19);
-        dump($data);
-        die('test');
-        return $this;
+        return $data;
     }
 
     public function set(string $body, int $line, bool $isAppend = false): self
@@ -191,7 +227,7 @@ class EmbedCodeService
         } else {
             $this->contentArray[$line] = $body;
         }
-        
+
         return $this;
     }
 
