@@ -20,7 +20,7 @@ class __REPLACE_PREFIX__Type extends AbstractType
 
         $builder
         ->add("name", ['sdsd' => $csdsd])
-        ->add();
+        ->add('someValue1');
 
      }
 

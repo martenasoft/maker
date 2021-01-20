@@ -43,33 +43,39 @@ class FormService
             ->findMethod('buildForm');
 
         $entityFields = $entityInfo->getEntityField();
+        $formTemplate = [];
 
 
         if (!empty($entityFields) && isset($methodBuildForm['methods']['buildForm']['body']['lines'])) {
 
             $use = $this->codeService->findUse();
             $insertedUse = [];
+            $findSameFunctionVars = [];
+            $lineBuilderVariable = 0;
+            $addFunctionSemicolonLine = 0;
+
 
             foreach ($entityFields as $entityField) {
                 if ($entityField->isForm()) {
-
-                    $newFieldType = '';
 
                     $newField = "\n        ->add('{$entityField->getName()}')";
                     if (!empty($types[$entityField->getType()])) {
                         $newFieldType = $types[$entityField->getType()];
                         if (!empty($types[$entityField->getType()]['addMethod'])) {
-                            $newField = str_replace([
-                                '__REPLACE_VAR_NAME__'
-                            ], [
-                                $entityField->getName()
-                            ], $types[$entityField->getType()]['addMethod']);
+                            $newField = str_replace(
+                                [
+                                    '__REPLACE_VAR_NAME__'
+                                ],
+                                [
+                                    $entityField->getName()
+                                ],
+                                $types[$entityField->getType()]['addMethod']
+                            );
                         }
 
                         if (!empty($types[$entityField->getType()]['namespace'])) {
-
                             $useLine = 0;
-                            if (!empty($use['use']) ) {
+                            if (!empty($use['use'])) {
                                 $useLine = $use['use'][count($use['use']) - 1]['line'];
                                 foreach ($use['use'] as $useItem) {
                                     $insertedUse[] = preg_replace(['/^use\s+/', '/;/'], ['', ''], $useItem['body']);
@@ -87,18 +93,24 @@ class FormService
                             );
 
                             if (!in_array($namespace, $insertedUse)) {
-
                                 $insertedUse[] = $namespace;
                                 $this->codeService->set(
-                                    'use '.$types[$entityField->getType()]['namespace'].";",
-                                    $useLine, true
+                                    'use ' . $types[$entityField->getType()]['namespace'] . ";",
+                                    $useLine,
+                                    true
                                 );
                             }
                         }
+
+                        if (!empty($types[$entityField->getType()]['template'])) {
+                            $formTemplate[] = str_replace(
+                                ['__REPLACE_VAR_NAME__'],
+                                [$entityField->getName()],
+                                $types[$entityField->getType()]['template']
+                            );
+                        }
                     }
 
-                    $lineBuilderVariable = 0;
-                    $addFunctionSemicolonLine = 0;
 
                     foreach ($methodBuildForm['methods']['buildForm']['body']['lines'] as $line) {
                         if (strpos($line['body'], '$builder') !== false) {
@@ -108,23 +120,39 @@ class FormService
                         if ($lineBuilderVariable > 0 && strpos($line['body'], ';') != false) {
                             $addFunctionSemicolonLine = $line['line'];
                         }
+
+                        $pattern = "/add\((\'|\\\")([a-zA-Z0-9_]+)(\'|\\\")/";
+                        if (preg_match($pattern, $line['body'], $matches) &&
+                            !empty($matches[2]) &&
+                            $matches[2] == $entityField->getName()
+                        ) {
+                            $findSameFunctionVars[] = $entityField->getName();
+                        }
+                    }
+
+                    if (in_array($entityField->getName(), $findSameFunctionVars)) {
+                        continue;
                     }
 
                     if ($lineBuilderVariable == 0) {
-                        $lineBuilderVariable = $methodBuildForm['methods']['buildForm']['body']['lines'][0]['line'];
+                        $lineBuilderVariable = $methodBuildForm['methods']['buildForm']['body']['lines'][0]['line'] + 1;
+                        $this->codeService->set('       $builder', $lineBuilderVariable , true);
+
                     }
 
                     if ($addFunctionSemicolonLine == 0) {
+                        $addFunctionSemicolonLine = $lineBuilderVariable;
                         $newField .= ";";
                     }
-                    $newField .= "\n";
+                    $lineBuilderVariable++;
+                   // $newField .= "\n";
                     $this->codeService->set($newField, $lineBuilderVariable, true);
                 }
             }
         }
 
 
-        dump($this->codeService->getResult());
+        dump($formTemplate, $this->codeService->getResult());
 
         die;
         return $result;
