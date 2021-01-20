@@ -11,16 +11,6 @@ class __REPLACE_PREFIX__Type extends AbstractType
 {
      public function buildForm (FormBuilderInterface    $builder = null, array $options): void
      {
-        if (true) {
-
-            echo 12;
-        }
-
-        foreach() {  echo 12; }
-
-        $builder
-        ->add("name", ['sdsd' => $csdsd])
-        ->add('someValue1');
 
      }
 

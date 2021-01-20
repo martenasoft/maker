@@ -10,6 +10,7 @@ use MartenaSoft\Maker\Form\EntityInfoFormType;
 use MartenaSoft\Maker\Service\BundleService;
 use MartenaSoft\Maker\Service\EntityService;
 use MartenaSoft\Maker\Service\FormService;
+use MartenaSoft\Maker\Service\SaverService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,15 +19,19 @@ use Symfony\Component\HttpFoundation\Response;
 class EntityController extends AbstractAdminBaseController
 {
 
+    private SaverService $saverService;
+
     public function __construct(
         EntityManagerInterface $entityManager,
         LoggerInterface $logger,
         EventDispatcherInterface $eventDispatcher,
-        BundleService $bundleService
+        BundleService $bundleService,
+        SaverService $saverService
     )
     {
         parent::__construct($entityManager, $logger, $eventDispatcher);
         $this->bundleService = $bundleService;
+        $this->saverService = $saverService;
     }
 
     public function index(): Response
@@ -50,7 +55,6 @@ class EntityController extends AbstractAdminBaseController
     {
         $entityInfo = new EntityInfo();
 
-
         if (!empty($bundleName) && !empty($bundleInfo = $this->bundleService->getBundle($bundleName))) {
             $entityInfo->setNamespace($bundleInfo->getNamespace());
             $entityInfo->setBundleName($bundleInfo->getName());
@@ -70,20 +74,39 @@ class EntityController extends AbstractAdminBaseController
             $entityInfo->getEntityField()->add($this->getEntityFieldNewType());
         }
 
+        $path = $this->saverService->getPathByNamespace($entityInfo->getNamespace(), true);
+        $entityInfo->setBundlePath($path);
+
         $form = $this->createForm(EntityInfoFormType::class, $entityInfo);
 
         $form->handleRequest($request);
-        $content = '';
+
         if ($form->isSubmitted() && $form->isValid()) {
             $formData = $form->getData();
             if ($formData->getSysAction() == 'add-type') {
                 // $form = $this->createForm(EntityInfoFormType::class, $entityInfo);
             } else {
 
-                  $content = $entityService->collectData($formData);
-                  $content = $formService->collectData($formData);
+                $contentEntity = $entityService->collectData($formData);
+                $contentForm = $formService->collectData($formData);
+                $templateContent = $formService->getTemplate();
 
-                  dump($content);
+                $this->saverService->saveEntity(
+                    $formData,
+                    $contentEntity
+                )->saveForm(
+                    $formData,
+                    $contentForm
+                )->saveFormTemplate(
+                    $formData,
+                    $contentEntity
+                );
+
+
+                dump($templateContent, $contentEntity, $contentForm);
+
+                //$this->saverService
+                die;
             }
         }
 

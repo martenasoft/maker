@@ -69,7 +69,6 @@ class TemplateFileService
     public function getTemplateContent(string $dir, string $fileName = 'default.txt'): ?string
     {
         $dir_ = $this->getTemplatePath() . DIRECTORY_SEPARATOR . $dir . DIRECTORY_SEPARATOR . $fileName;
-
         if (file_exists($dir_) && !empty($content = file_get_contents($dir_))) {
             return $this->replace($content);
         }

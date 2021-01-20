@@ -16,7 +16,7 @@ class Configuration implements ConfigurationInterface
             'Repository',
             'Form',
             'Command',
-            'Resource',
+            'Resources',
             'Service'
         ];
     }

@@ -13,6 +13,7 @@ class FormService
     private TemplateFileService $templateFileService;
     private BundleService $bundleService;
     private EmbedCodeService $codeService;
+    private array $formTemplateArray = [];
 
     public function __construct(
         TemplateFileService $templateFileService,
@@ -44,7 +45,6 @@ class FormService
 
         $entityFields = $entityInfo->getEntityField();
         $formTemplate = [];
-
 
         if (!empty($entityFields) && isset($methodBuildForm['methods']['buildForm']['body']['lines'])) {
 
@@ -141,21 +141,55 @@ class FormService
                     }
 
                     if ($addFunctionSemicolonLine == 0) {
-                        $addFunctionSemicolonLine = $lineBuilderVariable;
+                        $addFunctionSemicolonLine = $lineBuilderVariable + 1;
+
                         $newField .= ";";
                     }
+
                     $lineBuilderVariable++;
-                   // $newField .= "\n";
-                    $this->codeService->set($newField, $lineBuilderVariable, true);
+                    $this->codeService->set($newField, $addFunctionSemicolonLine, true);
                 }
             }
         }
 
+        $this->formTemplateArray = $formTemplate;
+        return $this->codeService->getResult();
+    }
 
-        dump($formTemplate, $this->codeService->getResult());
 
-        die;
-        return $result;
+    public function getTemplate(?string $content = null, string $templateFileName = 'template_default.txt'): ?string
+    {
+        $content = $this->templateFileService->getTemplateContent('Form', $templateFileName);
+        if (!empty($content) && !empty($contentArray = explode("\n", $content))) {
+            $insertLine = 0;
+
+            foreach ($contentArray as $line => $body) {
+                if (strpos($body, 'form_start')) {
+                    $insertLine = $line + 1;
+                    break;
+                }
+            }
+
+            if ($insertLine == 0) {
+                foreach ($contentArray as $line => $body) {
+                    if (empty($body)) {
+                        array_unshift($this->formTemplateArray, '   {{form_start(form)}}');
+                        $insertLine = $line + 1;
+                        break;
+                    }
+                }
+            }
+
+            array_splice(
+                $contentArray,
+                $insertLine,
+                null,
+                $this->formTemplateArray
+            );
+
+            return implode("\n", $contentArray);
+        }
+        return null;
     }
 
     private function templateServiceInit(EntityInfo $entityInfo): void

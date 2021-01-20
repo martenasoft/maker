@@ -78,7 +78,9 @@ class EntityService
     {
         $this
             ->templateFileService
-            ->addReplace(TemplateFileService::REPLACE_NAMESPACE, $entityInfo->getNamespace())
+            ->addReplace(
+                TemplateFileService::REPLACE_NAMESPACE,
+                preg_replace('/\\\+$/', '', $entityInfo->getNamespace()))
             ->addReplace(TemplateFileService::REPLACE_BUNDLE_NAME, $entityInfo->getBundleName())
             ->addReplace(TemplateFileService::REPLACE_CLASS_PREFIX_NAME, $entityInfo->getName())
         ;

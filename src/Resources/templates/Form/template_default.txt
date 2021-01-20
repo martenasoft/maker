@@ -1,0 +1,9 @@
+{% block body %}
+
+
+    <hr>
+    <a href="{{ cancel_url }}" class="btn btn-dark">Cancel</a>
+    <button type="submit" class="btn btn-primary">Save</button>
+    {{ form_end(form) }}
+
+{% endblock %}

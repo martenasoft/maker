@@ -7,10 +7,13 @@ use Doctrine\Common\Collections\ArrayCollection;
 class EntityInfo
 {
     private ?string $namespace = "";
+
     private ?string $bundleName = "";
+    private ?string $bundlePath = "";
     private ?string $name = "";
     private bool $isDatabase = false;
     private ?string $sysAction = "";
+
 
     private ArrayCollection $entityField;
 
@@ -28,6 +31,16 @@ class EntityInfo
     {
         $this->name = $name;
         return $this;
+    }
+
+    public function getBundlePath(): ?string
+    {
+        return $this->bundlePath;
+    }
+
+    public function setBundlePath(?string $bundlePath): void
+    {
+        $this->bundlePath = $bundlePath;
     }
 
     public function getBundleName(): ?string
