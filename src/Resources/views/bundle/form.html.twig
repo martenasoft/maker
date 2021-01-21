@@ -19,7 +19,14 @@
     {% for directory in directories %}
         {% if attribute(form, directory) is defined %}
             {% set formElement = attribute(form, directory) %}
-            <h4>{{ directory }}</h4>
+            <h4>{{ directory }} (
+                <a href="{{ path('admin_makerconfig_chage_element', {
+                    name: directory,
+                    bundlename: form.vars.value.name,
+
+                })
+                }}">Edit</a>
+                )</h4>
             <ul class="controllers" data-prototype="{{ form_widget(formElement.vars.prototype)|e('html_attr') }}">
 
                 {% for controller in formElement %}
@@ -48,8 +55,12 @@
                     </li>
                 {% endfor %}
             </ul>
+        {% else%}
+            <p><a href="{{ path('admin_makerconfig_add', {name: directory, bundlename: form.vars.value.name}) }}">
+                    Create {{ directory }}</a></p>
         {% endif %}
     {% endfor %}
+    <hr>
     {% set cancel_url = path('admin_makerconfig_index') %}
     {% include '@MartenaSoftCommon/common/form_bottom.html.twig' %}
     {{ form_end(form) }}

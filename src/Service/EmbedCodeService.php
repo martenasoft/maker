@@ -9,6 +9,7 @@ class EmbedCodeService
     private array $contentArray = [];
     private array $data;
 
+
     public function setContent(string $content): self
     {
         $this->content = $content;
@@ -21,8 +22,6 @@ class EmbedCodeService
         $result = implode("\n", $this->contentArray);
         return $result;
     }
-
-
 
     public function findUse(): array
     {

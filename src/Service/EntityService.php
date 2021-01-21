@@ -2,6 +2,7 @@
 
 namespace MartenaSoft\Maker\Service;
 
+use MartenaSoft\Maker\Entity\Bundle;
 use MartenaSoft\Maker\Entity\EntityInfo;
 use function Symfony\Component\String\u;
 
@@ -9,20 +10,45 @@ class EntityService
 {
     private TemplateFileService $templateFileService;
     private BundleService $bundleService;
+    private EmbedCodeService $codeService;
 
-
-    public function __construct(TemplateFileService $templateFileService, BundleService $bundleService)
+    public function __construct(
+        TemplateFileService $templateFileService,
+        BundleService $bundleService,
+        EmbedCodeService $codeService
+    )
     {
         $this->templateFileService = $templateFileService;
         $this->bundleService = $bundleService;
+        $this->codeService = $codeService;
     }
 
-    public function collectData(EntityInfo $entityInfo): string
+    public function getDataFormFile(EntityInfo $entityInfo, Bundle $bundleInfo, string $name): string
+    {
+        $arrayCollection = $bundleInfo->getArrayCollections();
+        if (!empty($entityData = $arrayCollection['Entity'])) {
+            foreach ($entityData as $entityItem) {
+                if ($entityItem->getName() == $name.'.php') {
+                    $this->codeService->setContent($entityItem->getContent());
+                    $data = $this->codeService->findMethod('[a-zA-Z0-9_]+');
+                    dump($data); die;
+                    break;
+                }
+            }
+        }
+        return '';
+    }
+
+    public function collectData(EntityInfo $entityInfo, ?string $content = null): string
     {
         $this->templateServiceInit($entityInfo);
 
         $bundleData = $this->bundleService->getBundle($entityInfo->getBundleName());
-        $content = $this->templateFileService->getTemplateContent('Entity');
+
+        if (empty($content)) {
+            $content = $this->templateFileService->getTemplateContent('Entity');
+        }
+
         $typesFile = $this->templateFileService->getTemplatePath().'/Entity/types.php';
 
         $types = require $typesFile;

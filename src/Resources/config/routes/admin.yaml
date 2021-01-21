@@ -2,6 +2,16 @@ admin_makerconfig_index:
   path: /bundle
   controller: 'MartenaSoft\Maker\Controller\CreateBundleController::index'
 
+admin_makerconfig_add:
+  path: /add/{name}/{bundlename}
+  controller: 'MartenaSoft\Maker\Controller\CreateBundleController::add'
+
+
+admin_makerconfig_chage_element:
+  path: /cahge/{name}/{bundlename}
+  controller: 'MartenaSoft\Maker\Controller\CreateBundleController::changeElement'
+
+
 admin_makerconfig_edit:
   path: /bundle/edit/{slug}
   controller: 'MartenaSoft\Maker\Controller\CreateBundleController::save'
@@ -23,3 +33,7 @@ admin_maker_entity_index:
 admin_maker_entity_create:
   path: /entity/create/{bundleName}
   controller: 'MartenaSoft\Maker\Controller\EntityController::create'
+
+admin_maker_entity_edit:
+  path: /entity/edit/{name}/{bundleName}
+  controller: 'MartenaSoft\Maker\Controller\EntityController::edit'

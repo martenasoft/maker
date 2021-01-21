@@ -18,6 +18,8 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\Form;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\RouterInterface;
+use function Symfony\Component\String\u;
 
 class CreateBundleController extends AbstractAdminBaseController
 {
@@ -28,7 +30,8 @@ class CreateBundleController extends AbstractAdminBaseController
         LoggerInterface $logger,
         EventDispatcherInterface $eventDispatcher,
         BundleService $bundleService
-    ) {
+    )
+    {
         parent::__construct($entityManager, $logger, $eventDispatcher);
         $this->bundleService = $bundleService;
     }
@@ -43,8 +46,13 @@ class CreateBundleController extends AbstractAdminBaseController
 
     public function create(Request $request): Response
     {
-        $data = new CreateBundleEntity();
-        $form = $this->createForm(CreateBundleFormType::class, $data);
+        $entityBundle = new CreateBundleEntity();
+
+        $entityBundle->setPath($this->bundleService->getConfig()['root']);
+
+        $form = $this->createForm(CreateBundleFormType::class, $entityBundle);
+        $bundle = null;
+
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -54,11 +62,12 @@ class CreateBundleController extends AbstractAdminBaseController
             } catch (\Throwable $exception) {
                 throw $exception;
             }
-
         }
 
+
         return $this->render('@MartenaSoftMaker/bundle/create.html.twig', [
-            'form' => $form->createView()
+            'form' => $form->createView(),
+            'directories' => Configuration::getDirectories()
         ]);
     }
 
@@ -70,7 +79,7 @@ class CreateBundleController extends AbstractAdminBaseController
             $entityBundle = new Bundle();
         }
 
-        $form  = $this->createForm(BundleFormType::class, $entityBundle);
+        $form = $this->createForm(BundleFormType::class, $entityBundle);
         $bundle = null;
 
         $form->handleRequest($request);
@@ -88,10 +97,10 @@ class CreateBundleController extends AbstractAdminBaseController
                     list($command, $controller) = explode('-', $sysCommand);
                 }
 
-                switch($command) {
+                switch ($command) {
                     case 'add' :
                         $entityBundle->getCollection($controller)->add(new ClassEntity());
-                        $form  = $this->createForm(BundleFormType::class, $entityBundle);
+                        $form = $this->createForm(BundleFormType::class, $entityBundle);
                         break;
                 }
 
@@ -103,5 +112,40 @@ class CreateBundleController extends AbstractAdminBaseController
             'form' => $form->createView(),
             'directories' => Configuration::getDirectories()
         ]);
+    }
+
+    public function add(RouterInterface $router, string $name, string $bundlename): Response
+    {
+        switch ($name) {
+            case "Entity":
+                return $this->redirectToRoute('admin_maker_entity_create', [
+                    'bundleName' => $bundlename
+                ]);
+            default:
+                $name = 'admin_maker_'.u($name)->snake().'_create';
+        }
+
+        if ($router->getRouteCollection()->get($name)) {
+            return $this->redirectToRoute($name);
+        }
+        return $this->render('@MartenaSoftMaker/bundle/add.html.twig');
+    }
+
+    public function changeElement(RouterInterface $router, string $name, string $bundlename): Response
+    {
+        switch ($name) {
+            case "Entity":
+                return $this->redirectToRoute('admin_maker_entity_edit', [
+                    'bundleName' => $bundlename,
+                    'name' => $name
+                ]);
+            default:
+                $name = 'admin_maker_'.u($name)->snake().'_edit';
+        }
+
+        if ($router->getRouteCollection()->get($name)) {
+            return $this->redirectToRoute($name);
+        }
+        return $this->render('@MartenaSoftMaker/bundle/add.html.twig');
     }
 }

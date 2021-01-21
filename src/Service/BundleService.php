@@ -29,22 +29,22 @@ class BundleService
     }
 
 
-    public function getBundles(): array
+    public function getBundles(?string $path = null): array
     {
         $bundles = $this->getConfig();
         $result = [];
 
         foreach ($bundles['bundles'] as $bundle) {
+
             $path = $bundles['root'] . DIRECTORY_SEPARATOR . $bundle['dir'];
+
             foreach (new \DirectoryIterator($path) as $fileInfo) {
-                if ($fileInfo->isDot() ||
-                    !$fileInfo->isDir() ||
-                    empty(
-                    ($bundleInfo = $this->getBundleInfo(
-                        $path,
-                        $fileInfo->getFilename()
-                    ))
-                    )) {
+
+                $bundleInfo = $this->getBundleInfo(
+                    $fileInfo->getFilename()
+                );
+
+                if ($fileInfo->isDot() || !$fileInfo->isDir() || empty($bundleInfo)) {
                     continue;
                 }
 
@@ -54,11 +54,10 @@ class BundleService
         return $result;
     }
 
-    public function getBundle(string $name): ?Bundle
+    public function getBundle(string $name, ?string $path = null): ?Bundle
     {
         $bundlesConfig = $this->getConfig();
-        $path = $bundlesConfig['root'] . DIRECTORY_SEPARATOR . $name;
-        $bundleInfo = $this->getBundleInfo($path, $name);
+        $bundleInfo = $this->getBundleInfo($name, $path);
 
         if (!empty($bundleInfo)) {
             $entityBundle = new Bundle();
@@ -78,6 +77,7 @@ class BundleService
                     }
                 }
             }
+
             return $entityBundle;
         }
         return null;
@@ -181,7 +181,7 @@ class BundleService
                 DIRECTORY_SEPARATOR;
 
             switch ($module) {
-                case("Resource"):
+                case("Resources"):
 
                     $configPath = $modulePath . DIRECTORY_SEPARATOR . 'config';
                     $viewPath = $modulePath . DIRECTORY_SEPARATOR . 'views';
@@ -342,36 +342,44 @@ class BundleService
         return str_replace('\\', '', $entity->getNamespace());
     }
 
-    private function getBundleInfo(string $path, string $name): ?array
+    private function getBundleInfo(string $name, ?string $basePath = null): ?array
     {
         $bundlesConfig = $this->getConfig();
         $root = $this->getRootDir();
+        $pathArray = $this->getPathFormComposerJson($name);
 
-        if (!empty($path = $this->getPathFormComposerJson($name)) &&
-            !empty(
-            $class = $this->findBundleClass(
-                $root . DIRECTORY_SEPARATOR . $path['path'],
-                $path['namespace']
-            )
-            )) {
-            $basePath = $root . DIRECTORY_SEPARATOR . $path['path'];
-            $result = ['class' => $class];
-            $result = array_merge($result, $path);
-
-            if (!empty($bundlesConfig['directories'])) {
-                foreach ($bundlesConfig['directories'] as $directory) {
-                    $result[$directory] = $this->getClassesInDirectory(
-                        $basePath,
-                        $directory,
-                        $path['namespace']
-                    );
-                }
-            }
-
-            return $result;
+        if (empty($pathArray)) {
+            return null;
         }
 
-        return [];
+        if (empty($basePath)) {
+            $basePath = $root . DIRECTORY_SEPARATOR . $pathArray['path'];
+        }
+
+//dump($path); die;
+        if (empty($pathArray) || empty('.') || empty('..') || empty($class = $this->findBundleClass(
+                $basePath,
+                $name,
+                $pathArray['namespace']))) {
+            return [];
+        }
+
+
+
+        $result = ['class' => $class];
+        $result = array_merge($result, $pathArray);
+
+        if (!empty($bundlesConfig['directories'])) {
+            foreach ($bundlesConfig['directories'] as $directory) {
+                $result[$directory] = $this->getClassesInDirectory(
+                    $basePath,
+                    $directory,
+                    $pathArray['namespace']
+                );
+            }
+        }
+
+        return $result;
     }
 
     private function getClassesInDirectory(string $path, string $directory, string $namespace): array
@@ -407,11 +415,19 @@ class BundleService
 
     private function getPathFormComposerJson(string $name): ?array
     {
+        if (in_array($name, ['.', '.']) || empty($name)) {
+            return null;
+        }
+
         $composerJson = file_get_contents($this->getRootDir() . DIRECTORY_SEPARATOR . 'composer.json');
         $composerJsonArray = json_decode($composerJson, true);
         foreach ($composerJsonArray['autoload']['psr-4'] as $namespace => $path) {
             list(, $name_) = explode('\\', $namespace);
-            if ($name_ == ucfirst($name)) {
+            if (empty($name_)) {
+                continue;
+            }
+
+            if (strtolower($name_) == strtolower($name)) {
                 return [
                     'path' => preg_replace(['/\/{2,}/', '/\/{1,}$/'], ['/', ''], $path),
                     'namespace' => $namespace
@@ -426,17 +442,18 @@ class BundleService
         return $this->getConfig()['root'];
     }
 
-    private function findBundleClass(string $path, string $namespace): ?string
+    private function findBundleClass(string $path, string $name, string $namespace): ?string
     {
+
         foreach (new \DirectoryIterator($path) as $fileInfo) {
-            if (strrpos($fileInfo->getFilename(), "Bundle.php") !== false
-            ) {
+            if (strrpos($fileInfo->getFilename(), "Bundle.php") !== false) {
                 $className = $namespace . pathinfo($fileInfo->getFilename())['filename'];
                 if (class_exists($className)) {
                     return $className;
                 }
             }
         }
+        return null;
     }
 
     private function validateConfig(): void

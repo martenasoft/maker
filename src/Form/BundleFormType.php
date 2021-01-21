@@ -5,6 +5,7 @@ namespace MartenaSoft\Maker\Form;
 use MartenaSoft\Maker\Entity\Bundle;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
@@ -27,9 +28,10 @@ class BundleFormType extends AbstractType
         $builder
             ->add(
                 'sysAction',
-                TextType::class,
+                HiddenType::class,
                 [
-                    'required' => false
+                    'required' => false,
+
                 ]
             )
             ->add('name')
@@ -40,6 +42,7 @@ class BundleFormType extends AbstractType
                 function (FormEvent $event) {
                     $data = $event->getData();
                     $form = $event->getForm();
+
                     foreach ($data->getArrayCollections() as $classDir => $arrayCollection) {
                         $form->add(
                             $classDir,

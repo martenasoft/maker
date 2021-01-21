@@ -46,6 +46,82 @@ class EntityController extends AbstractAdminBaseController
         );
     }
 
+
+    public function edit(Request $request,
+                         EntityService $entityService,
+                         FormService $formService,
+                         string $name,
+                         string $bundleName
+
+    ): Response
+    {
+        $entityInfo = new EntityInfo();
+
+        if (!empty($bundleInfo = $this->bundleService->getBundle($bundleName))) {
+
+            $entityInfo->setNamespace($bundleInfo->getNamespace());
+            $entityInfo->setBundleName($bundleInfo->getName());
+            $content = $entityService->getDataFormFile($entityInfo, $bundleInfo, $name);
+        }
+
+        $formData = $request->request->get('entity_info_form');
+
+        if (!empty($formData) && !empty($formData['entityField'])) {
+            foreach ($formData['entityField'] as $field) {
+                $entityInfo->getEntityField()->add($this->getEntityFieldNewType());
+            }
+        }
+
+        $isAddElement = !empty($formData['sysAction']) && $formData['sysAction'] == 'add-type';
+
+        if ($isAddElement) {
+            $entityInfo->getEntityField()->add($this->getEntityFieldNewType());
+        }
+
+        $path = $this->saverService->getPathByNamespace($entityInfo->getNamespace(), true);
+        $entityInfo->setBundlePath($path);
+
+        $form = $this->createForm(EntityInfoFormType::class, $entityInfo);
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $formData = $form->getData();
+            if ($formData->getSysAction() == 'add-type') {
+                // $form = $this->createForm(EntityInfoFormType::class, $entityInfo);
+            } else {
+
+                $contentEntity = $entityService->collectData($formData);
+                $contentForm = $formService->collectData($formData);
+                $templateContent = $formService->getTemplate();
+
+                $this->saverService->saveEntity(
+                    $formData,
+                    $contentEntity
+                )->saveForm(
+                    $formData,
+                    $contentForm
+                )->saveFormTemplate(
+                    $formData,
+                    $contentEntity
+                );
+
+
+                dump($templateContent, $contentEntity, $contentForm);
+
+                //$this->saverService
+                die;
+            }
+        }
+
+        return $this->render(
+            '@MartenaSoftMaker/entity/create.html.twig',
+            [
+                'form' => $form->createView()
+            ]
+        );
+    }
+
     public function create(
         Request $request,
         EntityService $entityService,
