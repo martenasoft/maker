@@ -6,6 +6,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use MartenaSoft\Common\Controller\AbstractAdminBaseController;
 use MartenaSoft\Maker\DependencyInjection\Configuration;
 use MartenaSoft\Maker\Entity\Bundle;
+use MartenaSoft\Maker\Entity\BundleElementsEntity;
 use MartenaSoft\Maker\Entity\ClassEntity;
 use MartenaSoft\Maker\Entity\Controller;
 use MartenaSoft\Maker\Entity\CreateBundleEntity;
@@ -52,24 +53,60 @@ class CreateBundleController extends AbstractAdminBaseController
 
         $form = $this->createForm(CreateBundleFormType::class, $entityBundle);
         $bundle = null;
-
         $form->handleRequest($request);
+        $saveData = [];
 
         if ($form->isSubmitted() && $form->isValid()) {
+            $formData = $form->getData();
             try {
-                $this->bundleService->createDirectoriesAndEmptyFiles($form->getData());
+                $saveData = $this->bundleService->initContentDirectoriesAndEmptyFiles($form->getData());
 
             } catch (\Throwable $exception) {
                 throw $exception;
             }
-        }
 
+
+            if (!empty($saveData)) {
+
+                foreach ($saveData as $moduleName => $item) {
+
+                    $saveData[$moduleName]['isNeedCreateDir'] = (!is_dir($item['path']));
+                    $saveData[$moduleName]['fileExistsContent'] = (
+                        isset($item['file']) &&
+                        file_exists($item['path'] . DIRECTORY_SEPARATOR . $item['file'])
+                    ) ? file_get_contents($item['path'] . DIRECTORY_SEPARATOR . $item['file']) : '';
+
+
+                    if (!empty($item['path'])) {
+
+                        $classEntity = new BundleElementsEntity();
+                        $classEntity->setPath($item['path']);
+                        $classEntity->setName($moduleName);
+
+                        if (!empty($item['content'])) {
+                            $classEntity->setContent($item['content']);
+                            $classEntity->setExistsContent( $saveData[$moduleName]['fileExistsContent']);
+                        }
+
+                        $formData->getData()->add($classEntity);
+
+
+                    }
+
+                }
+
+                $form = $this->createForm(CreateBundleFormType::class, $formData);
+            }
+        }
 
         return $this->render('@MartenaSoftMaker/bundle/create.html.twig', [
             'form' => $form->createView(),
-            'directories' => Configuration::getDirectories()
+            'directories' => Configuration::getDirectories(),
+            'saveData' => $saveData
         ]);
     }
+
+
 
     public function save(Request $request, ?string $slug = null): Response
     {

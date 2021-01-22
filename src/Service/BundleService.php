@@ -9,6 +9,7 @@ use MartenaSoft\Maker\Entity\Controller;
 use MartenaSoft\Maker\Entity\CreateBundleEntity;
 use MartenaSoft\Maker\Entity\Entity;
 use MartenaSoft\Maker\MartenaSoftMakerBundle;
+use mysql_xdevapi\Exception;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 class BundleService
@@ -16,6 +17,7 @@ class BundleService
     private ParameterBagInterface $parameterBag;
     private array $config = [];
     private $mePath = '';
+    public const FILE_EXISTS_ERROR_NO = 1;
 
     public function __construct(ParameterBagInterface $parameterBag, ?array $config = null)
     {
@@ -83,8 +85,11 @@ class BundleService
         return null;
     }
 
-    public function createDirectoriesAndEmptyFiles(CreateBundleEntity $entity, string $prefixName = 'Default'): void
-    {
+    public function initContentDirectoriesAndEmptyFiles(
+        CreateBundleEntity $entity,
+        string $prefixName = 'Default'
+    ): array {
+        $return = [];
         $config = $this->getConfig();
         $templatesPath = $this->mePath . DIRECTORY_SEPARATOR . 'Resources' . DIRECTORY_SEPARATOR . 'templates';
         $bundleRootPath = $config['root'] . DIRECTORY_SEPARATOR . $entity->getPath();
@@ -101,14 +106,25 @@ class BundleService
             'default.txt'
         );
 
-        file_put_contents($bundleRootPath . DIRECTORY_SEPARATOR . '.gitignore', $gitignore);
-        file_put_contents($bundleRootPath . DIRECTORY_SEPARATOR . 'README.md', $entity->getDescription());
+        $return = [
+            'Gitignore' => [
+                'path' => $bundleRootPath ,
+                'file' => '.gitignore',
+                'content' => $gitignore
+            ],
+            'README' => [
+                'path' => $bundleRootPath . DIRECTORY_SEPARATOR,
+                'file' =>  'README.md',
+                'content' => $entity->getDescription()
+            ]
+        ];
+
 
         $bundleRootPath .= DIRECTORY_SEPARATOR . 'src';
 
-        if (!is_dir($bundleRootPath)) {
+       /* if (!is_dir($bundleRootPath)) {
             mkdir($bundleRootPath, 0755, true);
-        }
+        }*/
 
         $templateFile = $templatesPath .
             DIRECTORY_SEPARATOR .
@@ -116,20 +132,16 @@ class BundleService
             DIRECTORY_SEPARATOR .
             strtolower($prefixName) . '.txt';
 
-
-        $this->saveFile(
-            $templateFile,
-            $bundleRootPath,
-            $this->getResourceBundleName($entity) . 'Bundle.php',
-            $entity,
-            $prefixName
-        );
+        if (file_exists($templateFile)) {
+            $content = $this->replaceContent(file_get_contents($templateFile), $entity, $prefixName);
+            $return['Bundle'] = [
+                    'path' => $bundleRootPath,
+                    'file' => $this->getResourceBundleName($entity) . 'Bundle.php',
+                    'content' => $content
+            ];
+        }
 
         $dependencyInjectionBundleRootPath = $bundleRootPath . DIRECTORY_SEPARATOR . 'DependencyInjection';
-
-        if (!is_dir($dependencyInjectionBundleRootPath)) {
-            mkdir($dependencyInjectionBundleRootPath, 0755, true);
-        }
 
         $templateConfigurationFile = $templatesPath .
             DIRECTORY_SEPARATOR .
@@ -139,14 +151,13 @@ class BundleService
             DIRECTORY_SEPARATOR .
             strtolower($prefixName) . '_configuration.txt';
 
-
-        $this->saveFile(
-            $templateConfigurationFile,
-            $dependencyInjectionBundleRootPath,
-            'Configuration.php',
-            $entity,
-            $prefixName
-        );
+        if (file_exists($templateConfigurationFile)) {
+            $return['DependencyInjection Configuration'] = [
+                'path' => $dependencyInjectionBundleRootPath,
+                'file' => 'Configuration.php',
+                'content' => $this->replaceContent(file_get_contents($templateConfigurationFile), $entity, $prefixName)
+            ];
+        }
 
         $templateExtensionFile = $templatesPath .
             DIRECTORY_SEPARATOR .
@@ -156,24 +167,18 @@ class BundleService
             DIRECTORY_SEPARATOR .
             strtolower($prefixName) . '_extension.txt';
 
-
-        $this->saveFile(
-            $templateExtensionFile,
-            $dependencyInjectionBundleRootPath,
-            $this->getResourceBundleName($entity) . 'Extension.php',
-            $entity,
-            $prefixName
-        );
+        if (file_exists($templateExtensionFile)) {
+            $return['DependencyInjection Extension'] = [
+                'path' => $dependencyInjectionBundleRootPath,
+                'file' => $this->getResourceBundleName($entity) . 'Extension.php',
+                'content' => $this->replaceContent(file_get_contents($templateExtensionFile), $entity, $prefixName)
+            ];
+        }
 
 
         foreach ($entity->getModules() as $module => $index) {
             $modulePath = $bundleRootPath . DIRECTORY_SEPARATOR . $module;
 
-            if (!is_dir($modulePath)) {
-                mkdir($modulePath, 0755, true);
-            }
-
-            file_put_contents($modulePath . DIRECTORY_SEPARATOR . '.gitignore', $gitignore);
 
             $templatePath = $templatesPath .
                 DIRECTORY_SEPARATOR .
@@ -184,11 +189,6 @@ class BundleService
                 case("Resources"):
 
                     $configPath = $modulePath . DIRECTORY_SEPARATOR . 'config';
-                    $viewPath = $modulePath . DIRECTORY_SEPARATOR . 'views';
-
-                    if (!is_dir($configPath)) {
-                        mkdir($configPath, 0755, true);
-                    }
 
                     $serviceConfigTemplate = $templatesPath .
                         DIRECTORY_SEPARATOR .
@@ -197,7 +197,7 @@ class BundleService
                         strtolower($prefixName) . '_yaml.txt';
 
                     if (file_exists($serviceConfigTemplate)) {
-                        $serviceContent = file_get_contents($serviceConfigTemplate);
+
                         $serviceFile =
                             $modulePath .
                             DIRECTORY_SEPARATOR .
@@ -205,64 +205,23 @@ class BundleService
                             DIRECTORY_SEPARATOR .
                             'services.yaml';
 
-                        $serviceContent = $content = $this->replaceContent($serviceContent, $entity, $prefixName);
-                        file_put_contents($serviceFile, $serviceContent);
+                        $return['Resources Config'] = [
+                            'path' => $configPath,
+                            'file' => $serviceFile,
+                            'content' => $this->replaceContent(
+                                file_get_contents($serviceConfigTemplate), $entity, $prefixName
+                            )
+                        ];
                     }
-
-                    /*  if (in_array('Controller', $entity->getModules())) {
-                          $configRoutePath = $configPath . DIRECTORY_SEPARATOR . 'routes';
-
-                          $templateFile = $templatesPath .
-                              DIRECTORY_SEPARATOR .
-                              'Route' .
-                              DIRECTORY_SEPARATOR .
-                              strtolower($prefixName) . '.txt';
-
-
-                          $this->saveFile(
-                              $templateFile,
-                              $configRoutePath,
-                              'all.yaml',
-                              $entity,
-                              $prefixName,
-                              true
-                          );
-
-                          $resourceViewTemplateFile = $templatesPath .
-                              DIRECTORY_SEPARATOR .
-                              'View' .
-                              DIRECTORY_SEPARATOR .
-                              strtolower($prefixName) . '.txt';
-
-                          $viewIndexPath = $viewPath . DIRECTORY_SEPARATOR . strtolower($prefixName);
-
-                          $this->saveFile(
-                              $resourceViewTemplateFile,
-                              $viewIndexPath,
-                              'index.html.twig',
-                              $entity,
-                              $prefixName
-                          );
-
-                      }*/
-
                     break;
-
                 default:
-                    /* $templatePath .= strtolower($prefixName) . '.txt';
-                     $fileName = $modulePath . DIRECTORY_SEPARATOR . $prefixName . $module . '.php';
-
-                     if (file_exists($templatePath)) {
-                         $content = file_get_contents($templatePath);
-                         $content = $this->replaceContent($content, $entity, $prefixName);
-                         file_put_contents($fileName, $content);
-                     }*/
+                    $return[$module] = [
+                        'path' => $modulePath
+                    ];
             }
         }
 
-        dump($config, $entity);
-        //  mkdir();
-        die;
+       return $return;
     }
 
     public function getConfig(): array
@@ -284,6 +243,13 @@ class BundleService
         bool $isLower = false
     ): void
     {
+        if (file_exists($directory . DIRECTORY_SEPARATOR . $file)) {
+            throw new Exception(
+                'File already exists: '. $directory . DIRECTORY_SEPARATOR . $file,
+                self::FILE_EXISTS_ERROR_NO
+            );
+        }
+
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
         }

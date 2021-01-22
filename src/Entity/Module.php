@@ -6,5 +6,4 @@ class Module
 {
     private string $bundle;
     private array $modules = [];
-
 }

@@ -2,6 +2,7 @@
 
 namespace MartenaSoft\Maker\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use MartenaSoft\Maker\DependencyInjection\Configuration;
 
 class CreateBundleEntity
@@ -14,10 +15,12 @@ class CreateBundleEntity
     private bool $isInitGitRepository = true;
     private bool $isInitComposerJson = true;
     private array $modules = [];
+    private ArrayCollection $data;
 
     public function __construct()
     {
         $this->modules = Configuration::getDirectories();
+        $this->data = new ArrayCollection();
     }
 
     public function getChoiceValue()
@@ -115,5 +118,15 @@ class CreateBundleEntity
     {
         $this->modules = $modules;
         return $this;
+    }
+
+    public function getData(): ArrayCollection
+    {
+        return $this->data;
+    }
+
+    public function setData(ArrayCollection $data): void
+    {
+        $this->data = $data;
     }
 }
