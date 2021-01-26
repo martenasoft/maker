@@ -2,8 +2,23 @@
 
 
 {% block body %}
+    {{ root }}
     {{ form_start(form) }}
-    {{ form_row(form) }}
+    {{ form_row(form.path) }}
+    {{ form_row(form.namespace) }}
+    {{ form_row(form.name) }}
+    {{ form_row(form.description) }}
+    {{ form_row(form.isInitGitRepository) }}
+    {{ form_row(form.gitUrl) }}
+    {{ form_row(form.isInitComposerJson) }}
+    {{ form_row(form.modules) }}
+
+    {% if form.data is defined and form.data is not empty %}
+        {% for data in form.data %}
+            <p>{{ data.vars.value.name }}</p>
+            {{ form_row(data) }}
+         {% endfor %}
+    {% endif %}
 
     {% set cancel_url = path('admin_makerconfig_index') %}
     {% include '@MartenaSoftCommon/common/form_bottom.html.twig' %}

@@ -2,6 +2,8 @@
 
 namespace MartenaSoft\Maker\Service;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use MartenaSoft\Maker\Entity\BundleElementsEntity;
 use MartenaSoft\Maker\Entity\EntityInfo;
 use MartenaSoft\Maker\MartenaSoftMakerBundle;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
@@ -12,6 +14,8 @@ class SaverService
     private ParameterBagInterface $parameterBag;
     private array $config = [];
     private $mePath = '';
+    private int $directoryMode = 0755;
+    private int $fileMode = 0644;
 
     public function __construct(ParameterBagInterface $parameterBag, ?array $config = null)
     {
@@ -79,10 +83,36 @@ class SaverService
         return $this;
     }
 
-    public function save(string $fileName,  string $dir, string $content): void
+    public function saveCreateBundle(ArrayCollection $data): void
+    {
+        foreach ($data as $item) {
+            if ($item instanceof BundleElementsEntity) {
+                if (!empty($item->getExistsContent())) {
+                    switch ($item->getExistsContentAction()) {
+                        case BundleElementsEntity::LEAVE_OLD_CONTENT:
+                            $item->setContent($item->getExistsContent());
+                            break;
+
+                        case BundleElementsEntity::APPEND_CONTENT:
+                            $item->setContent($item->getExistsContent() . $item->getContent());
+                            break;
+                    }
+                }
+
+                $this->save($item->getName(), $item->getPath(), $item->getContent());
+            }
+        }
+    }
+
+
+    public function save(string $fileName,  string $dir, string $content = ''): void
     {
         if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+            mkdir($dir, $this->getDirectoryMode(), true);
+        }
+
+        if (empty($content) || empty($fileName)) {
+            return;
         }
 
         $file = preg_replace(
@@ -90,6 +120,7 @@ class SaverService
             DIRECTORY_SEPARATOR,
             $dir . DIRECTORY_SEPARATOR .$fileName
         );
+
         file_put_contents($file, $content);
     }
 
@@ -103,5 +134,26 @@ class SaverService
         $this->config = $config;
     }
 
+    public function getDirectoryMode(): int
+    {
+        return $this->directoryMode;
+    }
+
+    public function setDirectoryMode(int $directoryMode): self
+    {
+        $this->directoryMode = $directoryMode;
+        return $this;
+    }
+
+    public function getFileMode(): int
+    {
+        return $this->fileMode;
+    }
+
+    public function setFileMode(int $fileMode): self
+    {
+        $this->fileMode = $fileMode;
+        return $this;
+    }
 
 }

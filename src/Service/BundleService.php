@@ -4,6 +4,7 @@ namespace MartenaSoft\Maker\Service;
 
 use MartenaSoft\Common\Exception\CommonException;
 use MartenaSoft\Maker\Entity\Bundle;
+use MartenaSoft\Maker\Entity\BundleElementsEntity;
 use MartenaSoft\Maker\Entity\ClassEntity;
 use MartenaSoft\Maker\Entity\Controller;
 use MartenaSoft\Maker\Entity\CreateBundleEntity;
@@ -15,21 +16,94 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 class BundleService
 {
     private ParameterBagInterface $parameterBag;
+    private EmbedCodeService $embedCodeService;
     private array $config = [];
     private $mePath = '';
     public const FILE_EXISTS_ERROR_NO = 1;
+    public const COMPOSER_JSON_NAMESPACE_OR_PATH_EXISTS_ERROR_NO = 1;
 
-    public function __construct(ParameterBagInterface $parameterBag, ?array $config = null)
-    {
+    public function __construct(
+        ParameterBagInterface $parameterBag,
+        EmbedCodeService $embedCodeService,
+        ?array $config = null
+    ) {
         $this->mePath = realpath(__DIR__ . '/../');
         $this->parameterBag = $parameterBag;
         if ($config === null) {
             $this->setConfig($parameterBag->get(MartenaSoftMakerBundle::getConfigName()));
         }
-
+        $this->embedCodeService = $embedCodeService;
         $this->validateConfig();
     }
 
+    public function putBundleConfig(string $namespace, string $accessLevel = "['all' => true]"): string
+    {
+        $configBundle = file_get_contents(
+            $this->getRootDir() .
+            DIRECTORY_SEPARATOR .
+            'config' .
+            DIRECTORY_SEPARATOR .
+            'bundles.php'
+        );
+        $result = $this
+            ->embedCodeService
+            ->setContent($configBundle)
+            ->findString('/\[/', "/\]\;/");
+
+        foreach ($result['body'] as $item) {
+            if (strpos($item['content'], $namespace) !== false) {
+                throw new \Exception(
+                    'Namespace or already exists',
+                    self::COMPOSER_JSON_NAMESPACE_OR_PATH_EXISTS_ERROR_NO
+                );
+            }
+        }
+
+        foreach (array_reverse($result['body']) as $item) {
+            if (preg_match("/.+\]\s{0,}(\,{0,1})\s{0,}/", $item['content'], $matches) && !empty($matches)) {
+                if (empty($matches[1])) {
+
+                    $this->embedCodeService->set($item['content'] . ',', $item['line']);
+                }
+                $space = '';
+                if (preg_match('/(\W+)(\w)+/', $item['content'], $matches2) && !empty($matches2[1])) {
+                    $space = $matches2[1];
+                }
+                $insertBundle = $space . $namespace . ' => '. $accessLevel;
+                $this->embedCodeService->set($insertBundle . ',', $item['line'] + 1, true);
+                return $this->embedCodeService->getResult();
+            }
+        }
+        return '';
+    }
+
+    public function putPathInComposerJson(string $namespace, string $path): string
+    {
+        $composerJson = file_get_contents($this->getRootDir() . DIRECTORY_SEPARATOR . 'composer.json');
+        $result = $this->embedCodeService->setContent($composerJson)->findString('/\"autoload\"\:/', "/\}/");
+
+        foreach ($result['body'] as $item) {
+            if (strpos($item['content'], $namespace) !== false || strpos($item['content'], $path) !== false) {
+                throw new \Exception(
+                    'Namespace or path already exists',
+                    self::COMPOSER_JSON_NAMESPACE_OR_PATH_EXISTS_ERROR_NO
+                );
+            }
+        }
+        foreach ($result['body'] as $item) {
+            if (preg_match("/\/(\\\"|\\\')$/", $item['content'], $matches) && !empty($matches)) {
+                $this->embedCodeService->set($item['content'] . ",", $item['line']);
+                preg_match('/(\W+)(\w+)/', $item['content'], $matches2);
+                $space = isset($matches2[1]) ? $matches2[1] : '';
+                preg_match('/\s+\:\s+/', $item['content'], $matches3);
+                $slider = !empty($matches3[0]) ? $matches3[0] : ':';
+                $insertedNamespace = $space . $namespace . $slider . '"' . $path . '"';
+                $this->embedCodeService->set($insertedNamespace, $item['line'] + 1, true);
+                return $this->embedCodeService->getResult();
+            }
+        }
+        return '';
+    }
 
     public function getBundles(?string $path = null): array
     {
@@ -37,11 +111,9 @@ class BundleService
         $result = [];
 
         foreach ($bundles['bundles'] as $bundle) {
-
             $path = $bundles['root'] . DIRECTORY_SEPARATOR . $bundle['dir'];
 
             foreach (new \DirectoryIterator($path) as $fileInfo) {
-
                 $bundleInfo = $this->getBundleInfo(
                     $fileInfo->getFilename()
                 );
@@ -94,10 +166,6 @@ class BundleService
         $templatesPath = $this->mePath . DIRECTORY_SEPARATOR . 'Resources' . DIRECTORY_SEPARATOR . 'templates';
         $bundleRootPath = $config['root'] . DIRECTORY_SEPARATOR . $entity->getPath();
 
-        if (!is_dir($bundleRootPath)) {
-            mkdir($bundleRootPath, 0755, true);
-        }
-
         $gitignore = file_get_contents(
             $templatesPath .
             DIRECTORY_SEPARATOR .
@@ -106,25 +174,20 @@ class BundleService
             'default.txt'
         );
 
+
         $return = [
-            'Gitignore' => [
-                'path' => $bundleRootPath ,
-                'file' => '.gitignore',
-                'content' => $gitignore
-            ],
-            'README' => [
-                'path' => $bundleRootPath . DIRECTORY_SEPARATOR,
-                'file' =>  'README.md',
-                'content' => $entity->getDescription()
-            ]
+            'Gitignore' =>
+                $this->getBundleElementsEntity('.gitignore', false, $bundleRootPath, $gitignore),
+            'README' =>
+                $this->getBundleElementsEntity(
+                    'README.md',
+                    false,
+                    $bundleRootPath,
+                    $entity->getDescription()
+                ),
         ];
 
-
         $bundleRootPath .= DIRECTORY_SEPARATOR . 'src';
-
-       /* if (!is_dir($bundleRootPath)) {
-            mkdir($bundleRootPath, 0755, true);
-        }*/
 
         $templateFile = $templatesPath .
             DIRECTORY_SEPARATOR .
@@ -134,11 +197,13 @@ class BundleService
 
         if (file_exists($templateFile)) {
             $content = $this->replaceContent(file_get_contents($templateFile), $entity, $prefixName);
-            $return['Bundle'] = [
-                    'path' => $bundleRootPath,
-                    'file' => $this->getResourceBundleName($entity) . 'Bundle.php',
-                    'content' => $content
-            ];
+            $return['Bundle'] =
+                $this->getBundleElementsEntity(
+                    $this->getResourceBundleName($entity) . 'Bundle.php',
+                    false,
+                    $bundleRootPath,
+                    $content
+                );
         }
 
         $dependencyInjectionBundleRootPath = $bundleRootPath . DIRECTORY_SEPARATOR . 'DependencyInjection';
@@ -152,11 +217,13 @@ class BundleService
             strtolower($prefixName) . '_configuration.txt';
 
         if (file_exists($templateConfigurationFile)) {
-            $return['DependencyInjection Configuration'] = [
-                'path' => $dependencyInjectionBundleRootPath,
-                'file' => 'Configuration.php',
-                'content' => $this->replaceContent(file_get_contents($templateConfigurationFile), $entity, $prefixName)
-            ];
+            $return['DependencyInjection Configuration'] =
+                $this->getBundleElementsEntity(
+                    'Configuration.php',
+                    false,
+                    $dependencyInjectionBundleRootPath,
+                    $this->replaceContent(file_get_contents($templateConfigurationFile), $entity, $prefixName)
+                );
         }
 
         $templateExtensionFile = $templatesPath .
@@ -168,11 +235,13 @@ class BundleService
             strtolower($prefixName) . '_extension.txt';
 
         if (file_exists($templateExtensionFile)) {
-            $return['DependencyInjection Extension'] = [
-                'path' => $dependencyInjectionBundleRootPath,
-                'file' => $this->getResourceBundleName($entity) . 'Extension.php',
-                'content' => $this->replaceContent(file_get_contents($templateExtensionFile), $entity, $prefixName)
-            ];
+            $return['DependencyInjection Extension'] =
+                $this->getBundleElementsEntity(
+                    $this->getResourceBundleName($entity) . 'Extension.php',
+                    false,
+                    $dependencyInjectionBundleRootPath,
+                    $this->replaceContent(file_get_contents($templateExtensionFile), $entity, $prefixName)
+                );
         }
 
 
@@ -197,31 +266,66 @@ class BundleService
                         strtolower($prefixName) . '_yaml.txt';
 
                     if (file_exists($serviceConfigTemplate)) {
-
                         $serviceFile =
                             $modulePath .
                             DIRECTORY_SEPARATOR .
-                            'config' .
-                            DIRECTORY_SEPARATOR .
-                            'services.yaml';
-
-                        $return['Resources Config'] = [
-                            'path' => $configPath,
-                            'file' => $serviceFile,
-                            'content' => $this->replaceContent(
-                                file_get_contents($serviceConfigTemplate), $entity, $prefixName
-                            )
-                        ];
+                            'config' ;
+                        $return['Resources Config'] =
+                            $this->getBundleElementsEntity(
+                                'services.yaml',
+                                false,
+                                $serviceFile,
+                                $this->replaceContent(
+                                    file_get_contents($serviceConfigTemplate),
+                                    $entity,
+                                    $prefixName
+                                )
+                            );
                     }
                     break;
                 default:
-                    $return[$module] = [
-                        'path' => $modulePath
-                    ];
+                    $return[$module] =
+                        $this->getBundleElementsEntity(
+                            '',
+                            true,
+                            $modulePath
+                        );
             }
         }
 
-       return $return;
+        $jsonData = $this->putPathInComposerJson(
+            str_replace('\\', '\\\\', $entity->getNamespace()).'\\\\"',
+            $entity->getPath() .
+            DIRECTORY_SEPARATOR .
+            'src' .
+            DIRECTORY_SEPARATOR
+        );
+
+        $return['Composer JSON'] =
+            $this->getBundleElementsEntity(
+                'composer.json',
+                false,
+                $config['root'],
+                $jsonData
+            );
+
+        $bundleData = $this->putBundleConfig(
+            $entity->getNamespace() .
+            '\\' .
+            $this->getResourceBundleName($entity) .
+
+            'Bundle::class'
+        );
+
+        $return['Config Bundles'] =
+            $this->getBundleElementsEntity(
+                'bundles.php',
+                false,
+                $config['root'] . DIRECTORY_SEPARATOR . 'config',
+                $bundleData
+            );
+
+        return $return;
     }
 
     public function getConfig(): array
@@ -241,11 +345,10 @@ class BundleService
         CreateBundleEntity $entity,
         string $prefixName,
         bool $isLower = false
-    ): void
-    {
+    ): void {
         if (file_exists($directory . DIRECTORY_SEPARATOR . $file)) {
             throw new Exception(
-                'File already exists: '. $directory . DIRECTORY_SEPARATOR . $file,
+                'File already exists: ' . $directory . DIRECTORY_SEPARATOR . $file,
                 self::FILE_EXISTS_ERROR_NO
             );
         }
@@ -268,8 +371,7 @@ class BundleService
         ?array $form = null,
         ?array $to = null,
         bool $isLower = false
-    ): string
-    {
+    ): string {
         $findData = [
             '__REPLACE_NAMESPACE__',
             '__REPLACE_BUNDLE_NAME__',
@@ -322,14 +424,15 @@ class BundleService
             $basePath = $root . DIRECTORY_SEPARATOR . $pathArray['path'];
         }
 
-//dump($path); die;
-        if (empty($pathArray) || empty('.') || empty('..') || empty($class = $this->findBundleClass(
+        if (empty($pathArray) || empty('.') || empty('..') || empty(
+            $class = $this->findBundleClass(
                 $basePath,
                 $name,
-                $pathArray['namespace']))) {
+                $pathArray['namespace']
+            )
+            )) {
             return [];
         }
-
 
 
         $result = ['class' => $class];
@@ -410,7 +513,6 @@ class BundleService
 
     private function findBundleClass(string $path, string $name, string $namespace): ?string
     {
-
         foreach (new \DirectoryIterator($path) as $fileInfo) {
             if (strrpos($fileInfo->getFilename(), "Bundle.php") !== false) {
                 $className = $namespace . pathinfo($fileInfo->getFilename())['filename'];
@@ -420,6 +522,29 @@ class BundleService
             }
         }
         return null;
+    }
+
+    private function getBundleElementsEntity(
+        string $name,
+        bool $isDirectory = true,
+        string $path,
+        string $content = '',
+        string $existsContent = '',
+        int $existsContentAction = null,
+
+        bool $isNeedCreate = true
+    ): BundleElementsEntity {
+        $return = new BundleElementsEntity();
+        $return
+            ->setName($name)
+            ->setPath($path)
+            ->setContent($content)
+            ->setExistsContent($existsContent)
+            ->setExistsContentAction($existsContentAction)
+            ->setIsDirectory($isDirectory)
+            ->setIsNeedCreate($isNeedCreate);
+
+        return $return;
     }
 
     private function validateConfig(): void

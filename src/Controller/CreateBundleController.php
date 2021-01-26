@@ -4,6 +4,7 @@ namespace MartenaSoft\Maker\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
 use MartenaSoft\Common\Controller\AbstractAdminBaseController;
+use MartenaSoft\Common\Library\CommonValues;
 use MartenaSoft\Maker\DependencyInjection\Configuration;
 use MartenaSoft\Maker\Entity\Bundle;
 use MartenaSoft\Maker\Entity\BundleElementsEntity;
@@ -13,6 +14,7 @@ use MartenaSoft\Maker\Entity\CreateBundleEntity;
 use MartenaSoft\Maker\Form\BundleFormType;
 use MartenaSoft\Maker\Form\CreateBundleFormType;
 use MartenaSoft\Maker\Service\BundleService;
+use MartenaSoft\Maker\Service\SaverService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -25,16 +27,19 @@ use function Symfony\Component\String\u;
 class CreateBundleController extends AbstractAdminBaseController
 {
     private BundleService $bundleService;
+    private SaverService $saverService;
 
     public function __construct(
         EntityManagerInterface $entityManager,
         LoggerInterface $logger,
         EventDispatcherInterface $eventDispatcher,
-        BundleService $bundleService
+        BundleService $bundleService,
+        SaverService $saverService
     )
     {
         parent::__construct($entityManager, $logger, $eventDispatcher);
         $this->bundleService = $bundleService;
+        $this->saverService = $saverService;
     }
 
     public function index(Request $request): Response
@@ -49,7 +54,13 @@ class CreateBundleController extends AbstractAdminBaseController
     {
         $entityBundle = new CreateBundleEntity();
 
-        $entityBundle->setPath($this->bundleService->getConfig()['root']);
+        $entityBundle
+            ->setPath('martenasoft/newmodule')
+            ->setNamespace('MartenaSoft\\NewModule')
+            ->setName('NewModule')
+            ->setDescription('My New Module')
+        ;
+
 
         $form = $this->createForm(CreateBundleFormType::class, $entityBundle);
         $bundle = null;
@@ -60,53 +71,42 @@ class CreateBundleController extends AbstractAdminBaseController
             $formData = $form->getData();
             try {
                 $saveData = $this->bundleService->initContentDirectoriesAndEmptyFiles($form->getData());
-
-            } catch (\Throwable $exception) {
+             } catch (\Throwable $exception) {
                 throw $exception;
             }
 
-
             if (!empty($saveData)) {
 
+
+                $isReadSubForm =  !$formData->getData()->isEmpty();
                 foreach ($saveData as $moduleName => $item) {
+                    $existsContent = '';
+                        !empty($item->getName()) &&
+                        file_exists($item->getPath() . DIRECTORY_SEPARATOR . $item->getName())
+                     ? file_get_contents($item->getPath() . DIRECTORY_SEPARATOR . $item->getName()) : '';
 
-                    $saveData[$moduleName]['isNeedCreateDir'] = (!is_dir($item['path']));
-                    $saveData[$moduleName]['fileExistsContent'] = (
-                        isset($item['file']) &&
-                        file_exists($item['path'] . DIRECTORY_SEPARATOR . $item['file'])
-                    ) ? file_get_contents($item['path'] . DIRECTORY_SEPARATOR . $item['file']) : '';
-
-
-                    if (!empty($item['path'])) {
-
-                        $classEntity = new BundleElementsEntity();
-                        $classEntity->setPath($item['path']);
-                        $classEntity->setName($moduleName);
-
-                        if (!empty($item['content'])) {
-                            $classEntity->setContent($item['content']);
-                            $classEntity->setExistsContent( $saveData[$moduleName]['fileExistsContent']);
-                        }
-
-                        $formData->getData()->add($classEntity);
-
-
-                    }
-
+                    $item->setIsNeedCreate(!is_dir($item->getPath()));
+                    $item->setExistsContent($existsContent);
+                    $formData->getData()->add($item);
                 }
 
                 $form = $this->createForm(CreateBundleFormType::class, $formData);
+
+                if ($isReadSubForm) {
+                    $this->saverService->saveCreateBundle($formData->getData());
+                    $this->addFlash(CommonValues::FLASH_SUCCESS_TYPE, 'Bundle saved');
+                    return $this->redirectToRoute('admin_makerconfig_index');
+                }
             }
         }
 
         return $this->render('@MartenaSoftMaker/bundle/create.html.twig', [
             'form' => $form->createView(),
             'directories' => Configuration::getDirectories(),
+            'root' => $this->bundleService->getConfig()['root'],
             'saveData' => $saveData
         ]);
     }
-
-
 
     public function save(Request $request, ?string $slug = null): Response
     {

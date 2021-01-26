@@ -9,7 +9,6 @@ class EmbedCodeService
     private array $contentArray = [];
     private array $data;
 
-
     public function setContent(string $content): self
     {
         $this->content = $content;
@@ -213,6 +212,36 @@ class EmbedCodeService
         $this->data = $data;
 
         return $data;
+    }
+
+    public function findString(string $needle, string $stopString): array
+    {
+        $result = [];
+        foreach($this->contentArray as $line => $content) {
+
+            if (isset($result['start']) && !isset($result['end'])) {
+                $result['body'][] = [
+                    'line' => $line,
+                    'content' => $content
+                ];
+            }
+
+            if (preg_match($needle, $content, $matches) !== false && !empty($matches) && !isset($result['start'])) {
+                $result['start'] = [
+                    'line' => $line,
+                    'content' => $content
+                ];
+            }
+
+            if (preg_match($stopString, $content, $matches2) !== false && !empty($matches2) && isset($result['body']) && !isset($result['end'])) {
+                $result['end'] = [
+                    'line' => $line,
+                    'content' => $content
+                ];
+            }
+        }
+
+        return $result;
     }
 
     public function set(string $body, int $line, bool $isAppend = false): self

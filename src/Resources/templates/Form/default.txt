@@ -7,7 +7,7 @@ use __REPLACE_NAMESPACE__\Entity\__REPLACE_PREFIX__;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
-class __REPLACE_PREFIX__Type extends AbstractType
+class __REPLACE_PREFIX__FormType extends AbstractType
 {
      public function buildForm (FormBuilderInterface    $builder = null, array $options): void
      {

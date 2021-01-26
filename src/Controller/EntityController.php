@@ -165,7 +165,6 @@ class EntityController extends AbstractAdminBaseController
 
                 $contentEntity = $entityService->collectData($formData);
                 $contentForm = $formService->collectData($formData);
-                $templateContent = $formService->getTemplate();
 
                 $this->saverService->saveEntity(
                     $formData,
@@ -178,11 +177,8 @@ class EntityController extends AbstractAdminBaseController
                     $contentEntity
                 );
 
+                return $this->redirectToRoute('admin_maker_entity_index');
 
-                dump($templateContent, $contentEntity, $contentForm);
-
-                //$this->saverService
-                die;
             }
         }
 
