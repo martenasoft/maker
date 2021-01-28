@@ -65,6 +65,9 @@ class EmbedCodeService
         $file = explode("\n", $this->content);
         $data = [];
         $body = '';
+        $stepOverVariables = [
+            '$this'
+        ];
 
         foreach ($file as $lineNumber => $line) {
             $pattern = "/((public|protected|private)\s+function\s+|function\s+)($name)/";
@@ -100,25 +103,30 @@ class EmbedCodeService
                             $argumenVariables = explode(',', $matches_[1]);
 
                             foreach ($argumenVariables as $arg_) {
-                                $data['methods'][$name]['arguments']['variables'][] = [
-                                    'line' => $lineNumber + 1,
-                                    'vars' => $arg_
-                                ];
+                                if (!in_array($arg_, $stepOverVariables)) {
+                                    $data['methods'][$name]['arguments']['variables'][] = [
+                                        'line' => $lineNumber + 1,
+                                        'vars' => $arg_
+                                    ];
+                                    $stepOverVariables[] = $arg_;
+                                }
                             }
-                        } else {
+                        } elseif (!in_array($matches_[1], $stepOverVariables)) {
                             $data['methods'][$name]['arguments']['variables'][] = [
                                 'line' => $lineNumber + 1,
                                 'vars' => $matches_[1]
                             ];
+                            $stepOverVariables[] = $matches_[1];
                         }
                     }
 
                 } elseif (!empty($lineNumber) && !empty(preg_replace('/\s+/', "", $line))) {
-                    if (strpos($line, '$') !== false) {
+                    if ( strpos($line, '$') !== false) {
                         $data['methods'][$name]['arguments']['variables'][] = [
                             'line' => $lineNumber + 1,
                             'vars' => $line
                         ];
+
                     }
                 }
             }
@@ -164,13 +172,17 @@ class EmbedCodeService
 
             }
 
-            if (!empty($vars = $this->getVariable($line, $lineNumber))) {
+            if (!empty($vars = $this->getVariable($line, $lineNumber, $stepOverVariables))) {
                 $data['methods'][$name]['vars'][] = $vars;
             }
         }
 
         if (!empty($data['methods'][$name]['arguments']['variables'])) {
             foreach ($data['methods'][$name]['arguments']['variables'] as $i => $args) {
+
+                if (in_array($data['methods'][$name]['arguments']['variables'][$i]['vars'], $stepOverVariables)) {
+                    continue;
+                }
 
                 if (strpos($args['vars'], ",") !== false) {
                     $tmpVal = explode(",", $args['vars']);
@@ -188,6 +200,9 @@ class EmbedCodeService
 
                     }
                 }
+
+
+
                 $data['methods'][$name]['arguments']['variables'][$i]['vars']
                     = preg_replace(['/^\s+|\s+$/', '/\s{2,}/'], ['', ' '],
                     $data['methods'][$name]['arguments']['variables'][$i]['vars']);
@@ -212,6 +227,38 @@ class EmbedCodeService
         $this->data = $data;
 
         return $data;
+    }
+
+    public function findParameters(): array
+    {
+        $result = [];
+        $tmp = [];
+        foreach($this->contentArray as $line => $content) {
+            $pattern = "/(public|protected|private)\s+([a-z]{0,})\s{0,}([a-z]+\s+)(\\$[a-zA-Z0-9_]+\;)/";
+            if (preg_match($pattern, $content, $matches) && !empty($matches)) {
+
+                $varData = [];
+                foreach ($matches as $val) {
+
+                    if (in_array($val, ['public', 'private', 'protected'])) {
+                        $varData['accessModifier'] = $val;
+                    } elseif (in_array($val, ['static'])) {
+                        $varData['static'] = $val;
+                    } elseif (substr($val, 0, 1) == '$') {
+                        $varData['name'] = $val;
+                        $result[] = $varData;
+                        $varData = [];
+                    } else {
+                        $varData['type'] = $val;
+                        //dump($val);
+                    }
+                }
+            }
+
+           // dump($matches, $content);
+        }
+        dump($result); die;
+        return $result;
     }
 
     public function findString(string $needle, string $stopString): array
@@ -259,12 +306,14 @@ class EmbedCodeService
         return $this;
     }
 
-    private function getVariable(string $content, int $lineNumber): ?array
+    private function getVariable(string $content, int $lineNumber, array $stepOverVariables = []): ?array
     {
-
         if (preg_match_all('/\$([a-zA-Z0-9_]+)/', $content, $matcher) && !empty($matcher)) {
-            if (!isset($return)) {
-                $return = [];
+
+            foreach ($matcher[0] as $varName) {
+                if (in_array($varName, $stepOverVariables)) {
+                    return [];
+                }
             }
             $return[] = [
                 'name' => $matcher[0],

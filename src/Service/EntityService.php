@@ -30,8 +30,16 @@ class EntityService
             foreach ($entityData as $entityItem) {
                 if ($entityItem->getName() == $name.'.php') {
                     $this->codeService->setContent($entityItem->getContent());
-                    $data = $this->codeService->findMethod('[a-zA-Z0-9_]+');
-                    dump($data); die;
+                    //$functions = $this->codeService->findMethod('[a-zA-Z0-9_]+');
+                    $functions = $this->codeService->findMethod('setSomeName');
+                    $parameters = $this->codeService->findParameters();
+
+                    if (!empty($functions['methods'])) {
+                      //  foreach ($functions['methods'] as $)
+                    }
+                    //$variables = $this->codeService->findString();
+                    dump($functions);
+                    die;
                     break;
                 }
             }
